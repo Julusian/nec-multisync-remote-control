@@ -1,0 +1,20 @@
+{
+  "name": "nec-p401",
+  "version": "0.0.1",
+  "description": "Nec P401 (and similar) remote control",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Julusian/nec-p401.git"
+  },
+  "author": "Julian Waller <git@julusian.co.uk>",
+  "license": "GPL-2.0",
+  "bugs": {
+    "url": "https://github.com/Julusian/nec-p401/issues"
+  },
+  "homepage": "https://github.com/Julusian/nec-p401",
+  "dependencies": {
+    "linq": "^3.0.5",
+    "underscore": "^1.8.3"
+  }
+}

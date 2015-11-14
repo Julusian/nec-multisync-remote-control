@@ -166,6 +166,29 @@ module.exports = function(){
       console.log("Sending raw");
 
       return messageQueue.send(client, message, callback);
+    },
+
+    allCommands: function(){
+      return Commands.COMMANDS;
+    },
+
+    flattenCommands: function(){
+      var result = {};
+
+      function flatten(key, tree, result){
+        if(tree.page || tree.code || tree.type)
+          return result[key] = tree;
+
+        if(key.length > 0)
+          key += ".";
+
+        for(var i in tree){
+          flatten(key + i, tree[i], result);
+        }
+      }
+
+      flatten("", Commands.COMMANDS, result);
+      return result;
     }
   };
 };

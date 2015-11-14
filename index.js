@@ -129,6 +129,14 @@ module.exports = function(){
 
       var message = MessageBuilder.set(monitorId, command, value);
       return messageQueue.send(client, message, callback);
+    },
+
+    sendRAW: function(message, callback){
+      if(callback === undefined) callback = function(){};
+
+      console.log("Sending raw");
+
+      return messageQueue.send(client, message, callback);
     }
   };
 };

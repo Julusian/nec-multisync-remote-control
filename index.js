@@ -127,6 +127,24 @@ module.exports = function(){
         return callback('BAD_KEY');
       }
 
+      //TODO - use these from elsewhere
+      function padHex(hex){
+        return (hex.length == 1) ? "0" + hex : hex;
+      }
+      function encodeHex(hex){
+        hex = padHex(hex);
+        var encoded = "";
+        
+        for(var i=0; i<hex.length; i++){
+          encoded += padHex(hex.charCodeAt(i).toString(16));
+        }
+
+        return encoded;
+      }
+
+      if(command.type == "slider")
+        value = encodeHex(value);
+
       var message = MessageBuilder.set(monitorId, command, value);
       return messageQueue.send(client, message, callback);
     },

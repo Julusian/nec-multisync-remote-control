@@ -103,7 +103,7 @@ module.exports = function(){
     get: function(key, callback){
       if(callback === undefined) callback = function(){};
 
-      console.log("Running get command: "+key);
+      console.log("Running get: "+key);
 
       var command = Commands.fromKey(key);
       if(command === null){
@@ -119,7 +119,7 @@ module.exports = function(){
     set: function(key, value, callback){
       if(callback === undefined) callback = function(){};
 
-      console.log("Running get command: "+key);
+      console.log("Running set: "+key);
 
       var command = Commands.fromKey(key);
       if(command === null){
@@ -131,8 +131,37 @@ module.exports = function(){
       return messageQueue.send(client, message, callback);
     },
 
+    getCommand: function(command, callback){
+      if(callback === undefined) callback = function(){};
+
+      console.log("Running getCommand: "+command);
+
+      var message = MessageBuilder.getCommand(monitorId, command);
+
+      if(message === undefined || message === null)
+        return callback('NO_MESSAGE');
+
+      return messageQueue.send(client, message, callback);
+    },
+
+    setCommand: function(command, data, callback){
+      if(callback === undefined) callback = function(){};
+
+      console.log("Running setCommand: "+command);
+
+      var message = MessageBuilder.getCommand(monitorId, command, data);
+
+      if(message === undefined || message === null)
+        return callback('NO_MESSAGE');
+
+      return messageQueue.send(client, message, callback);
+    },
+
     sendRAW: function(message, callback){
       if(callback === undefined) callback = function(){};
+
+      if(message === undefined || message === null)
+        return callback('NO_MESSAGE');
 
       console.log("Sending raw");
 

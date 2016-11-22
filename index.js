@@ -142,7 +142,7 @@ module.exports = function(){
         return encoded;
       }
 
-      if(command.type == "slider")
+      if(command.type == "range")
         value = encodeHex(value);
 
       var message = MessageBuilder.set(monitorId, command, value);

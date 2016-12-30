@@ -167,7 +167,7 @@ module.exports = function(){
 
       console.log("Running setCommand: "+command);
 
-      var message = MessageBuilder.getCommand(monitorId, command, data);
+      var message = MessageBuilder.setCommand(monitorId, command, data);
 
       if(message === undefined || message === null)
         return callback('NO_MESSAGE');

@@ -1,17 +1,17 @@
-import net from 'net';
-import { setInterval, setTimeout } from 'timers';
+import net from 'net-socket';
+import { setInterval, setTimeout, clearInterval } from 'timers';
 
 import { ParameterFromKey } from './parameters/index';
 import { BuildGetParameter, BuildSetParameter, BuildGetCommand, BuildSetCommand } from './builder';
 import { encodeHex } from './util';
 import ParseMessage from './parser';
 import { MonitorIdToHex } from './monitorid';
+import MessageQueue from './messagequeue';
 
 const DEFAULT_ID = "ALL";
 const DEFAULT_PORT = 7142;
 const TIMEOUT_INTERVAL = 100;
 const RECEIVE_PART_TIMEOUT = 100;
-
 
 export function Create(ip, monitorId){
   if (monitorId === undefined)
@@ -26,7 +26,6 @@ export function Create(ip, monitorId){
   return new NecControl(ip, monitorId);
 }
 
-
 class NecControl {
   constructor(ip, monitorId, debug){
     this.ip = ip;
@@ -38,7 +37,6 @@ class NecControl {
     this.receiveTimeout = null;
     this.receiveBuffer = "";
 
-    this.timeoutInterval = setInterval(this.messageQueue.checkTimeout, TIMEOUT_INTERVAL);
   }
 
   _debugLog(message){
@@ -61,18 +59,22 @@ class NecControl {
       this.client = null;
     }
 
+    if (this.timeoutInterval)
+      clearInterval(this.timeoutInterval);
+
     this.client = net.connect(DEFAULT_PORT, this.ip);
     this.client.setEncoding('hex');
 
+    this.messageQueue = new MessageQueue(this.client, (msg) => this._debugLog(msg));
+    this.timeoutInterval = setInterval(() => this.messageQueue.checkTimeout(this.client), TIMEOUT_INTERVAL);
+
     this.client.on('data', data => this._receivedMessage(data));
-    this.client.on('close', () => {
-      this.client = null;
-    });
-    this.client.on('end', () => this.close());
   }
 
-
   _receivedMessage(message){
+    if (this.client == null)
+      return;
+
     this._debugLog("Received message");
 
     if(this.receiveTimeout != null){
@@ -90,6 +92,8 @@ class NecControl {
       this.receiveBuffer = "";
 
       const promise = this.messageQueue.received();
+      if (promise === null || promise === undefined)
+        return;
 
       if(parseResult.err)
         return promise.reject(parseResult.err);
@@ -122,6 +126,9 @@ class NecControl {
 
   //TODO - wrap value up properly
   setParameter(key, value){
+    if (this.client == null)
+      return;
+    
     this._debugLog("Running set: " + key);
 
     const parameter = ParameterFromKey(key);
@@ -137,6 +144,9 @@ class NecControl {
   }
 
   getCommand(command){
+    if (this.client == null)
+      return;
+    
     this._debugLog("Running getCommand: " + command);
 
     const message = BuildGetCommand(this.monitorId, command);
@@ -147,6 +157,9 @@ class NecControl {
   }
 
   setCommand(command, data){
+    if (this.client == null)
+      return;
+    
     this._debugLog("Running setCommand: " + command);
 
     const message = BuildSetCommand(this.monitorId, command, data);
@@ -157,6 +170,9 @@ class NecControl {
   }
 
   sendRAW(message){
+    if (this.client == null)
+      return;
+    
     if(message === undefined || message === null)
       return Promise.reject('NO_MESSAGE');
 

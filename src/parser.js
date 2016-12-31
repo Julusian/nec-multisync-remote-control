@@ -1,6 +1,6 @@
 import { MessageType, OperationType, PowerMode } from './types';
 import { decodeHex } from './util';
-import { Parameters } from './parameters';
+import { Parameters } from './parameters/index';
 import { CalculateCheckCode } from './builder';
 
 const HEADER_LENGTH = 7 * 2;

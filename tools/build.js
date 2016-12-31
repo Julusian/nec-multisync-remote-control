@@ -28,7 +28,7 @@ promise = promise.then(() => del(['dist/*']));
     plugins: [babel(Object.assign(pkg.babel, {
       babelrc: false,
       exclude: 'node_modules/**',
-      runtimeHelpers: false,
+      runtimeHelpers: true,
       presets: pkg.babel.presets,
     }))],
   }).then(bundle => bundle.write({

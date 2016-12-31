@@ -1,7 +1,7 @@
 import net from 'net';
 import { setInterval, setTimeout } from 'timers';
 
-import { ParameterFromKey } from './parameters';
+import { ParameterFromKey } from './parameters/index';
 import { BuildGetParameter, BuildSetParameter, BuildGetCommand, BuildSetCommand } from './builder';
 import { encodeHex } from './util';
 import ParseMessage from './parser';

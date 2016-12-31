@@ -13,7 +13,7 @@ const DEFAULT_PORT = 7142;
 const TIMEOUT_INTERVAL = 100;
 const RECEIVE_PART_TIMEOUT = 100;
 
-export function Create(ip, monitorId){
+export function Create(ip, monitorId, debug){
   if (monitorId === undefined)
     monitorId = DEFAULT_ID;
 
@@ -23,7 +23,7 @@ export function Create(ip, monitorId){
     return 'BAD_MONITOR';
   }
 
-  return new NecControl(ip, monitorId);
+  return new NecControl(ip, monitorId, debug);
 }
 
 class NecControl {
@@ -66,7 +66,7 @@ class NecControl {
     this.client.setEncoding('hex');
 
     this.messageQueue = new MessageQueue(this.client, (msg) => this._debugLog(msg));
-    this.timeoutInterval = setInterval(() => this.messageQueue.checkTimeout(this.client), TIMEOUT_INTERVAL);
+    this.timeoutInterval = setInterval(() => this.messageQueue.checkTimeout(), TIMEOUT_INTERVAL);
 
     this.client.on('data', data => this._receivedMessage(data));
   }
@@ -84,7 +84,7 @@ class NecControl {
 
     this.receiveBuffer = message;
 
-    this.receiveTimeout = setTimeout(function(){
+    this.receiveTimeout = setTimeout(() => {
       this._debugLog("Processing message: " + this.receiveBuffer);
 
       const parseResult = ParseMessage(this.receiveBuffer);

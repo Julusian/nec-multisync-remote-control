@@ -26,7 +26,7 @@ export default class MessageQueue {
     });
   }
 
-  trySend(){
+  _trySend(){
     if(this.queue.length == 0)
       return false;
 
@@ -38,7 +38,7 @@ export default class MessageQueue {
 
     message.sent = true;
     this.debugLog("Sending: " + message.message);
-    this.client.write(message.message, "hex", function(){
+    this.client.write(message.message, "hex", () => {
       //erm.. anything needed here?
       this.debugLog("Message sent");
     });
@@ -57,7 +57,7 @@ export default class MessageQueue {
     return message.promise;
   }
 
-  _checkTimeout(){
+  checkTimeout(){
     if(this.queue.length == 0)
       return false;
 

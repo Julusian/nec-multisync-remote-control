@@ -1,0 +1,37 @@
+{
+  "name": "nec-p401",
+  "version": "0.0.1",
+  "description": "Nec P401 (and similar) remote control",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Julusian/nec-p401.git"
+  },
+  "author": "Julian Waller <git@julusian.co.uk>",
+  "bugs": {
+    "url": "https://github.com/Julusian/nec-p401/issues"
+  },
+  "homepage": "https://github.com/Julusian/nec-p401",
+  "scripts": {
+    "build": "trash dist && yarn build:main",
+    "build:main": "tsc -p tsconfig.build.json",
+    "lint": "tslint --project tsconfig.json --config tslint.json",
+    "changelog": "standard-version",
+    "release": "yarn reset && yarn docs:publish && yarn changelog",
+    "reset": "git clean -dfx && git reset --hard && yarn",
+    "validate:dependencies": "yarn audit && yarn license-validate",
+    "license-validate": "node-license-validator -p -d --allow-licenses MIT BSD BSD-3-Clause ISC Apache"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^12.11.2",
+    "node-license-validator": "^1.3.0",
+    "prettier": "^1.18.2",
+    "tslint": "^5.20.0",
+    "tslint-config-prettier": "^1.18.0",
+    "tslint-plugin-prettier": "^2.0.1",
+    "typescript": "^3.6.4"
+  }
+}

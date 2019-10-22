@@ -1,7 +1,8 @@
 import { EventEmitter } from 'events'
 import { Socket } from 'net'
 import { buildGetCommand } from './builder'
-import { parseMessage } from './parser'
+import { parseMessageHeader, ParsedHeaderInfo, parseMessage } from './parser'
+import * as _ from 'underscore'
 
 const DEFAULT_PORT = 7142
 
@@ -12,6 +13,8 @@ export interface NecOptions {
 export class NecClient extends EventEmitter {
   private readonly debug: boolean
   private readonly socket: Socket
+
+  private receivedBuffers: Buffer[] = []
 
   private _connected: boolean = false
   private _connectionActive: boolean = false // True when connected/connecting/reconnecting
@@ -42,34 +45,15 @@ export class NecClient extends EventEmitter {
       //   this._triggerRetryConnection()
     })
 
-    let receiveBuffer: Buffer[] = []
-    this.socket.on('data', d => {
-      // TMP hack
-      if (receiveBuffer.length === 0) {
-        receiveBuffer.push(d)
-        return
-      } else {
-        d = Buffer.concat([receiveBuffer[0], d])
-        receiveBuffer = []
-      }
-
-      console.log('data', d)
-
-      try {
-        const parsed = parseMessage(d)
-        console.log('parsed', parsed)
-      } catch (e) {
-        console.error('parse errpr', e)
-      }
-    })
+    this.socket.on('data', d => this._handleReceivedData(d))
 
     this.socket.on('connect', () => {
+      console.log('Connected')
+
       const test = buildGetCommand(this._id, 'MODEL') as Buffer
 
       console.log('sending', test.toString('hex'))
       this.socket.write(test.toString('hex'), 'hex')
-
-      console.log('Connected')
     })
   }
 
@@ -103,6 +87,58 @@ export class NecClient extends EventEmitter {
         return reject(e)
       }
     })
+  }
+
+  private _handleReceivedData(data: Buffer) {
+    const headerInfo = parseMessageHeader(data)
+    if (headerInfo) {
+      // Start of new message
+      if (this.receivedBuffers.length !== 0) {
+        console.log('Received new header with some buffers to finish off')
+        this._tryCompleteReceivedData(undefined, true)
+        this.receivedBuffers = []
+      }
+
+      //   console.log('new header packet')
+      this.receivedBuffers.push(data)
+      this._tryCompleteReceivedData(headerInfo, false)
+    } else {
+      if (this.receivedBuffers.length === 0) {
+        console.log('Received middle packet with no waiting header')
+      }
+      this.receivedBuffers.push(data)
+      this._tryCompleteReceivedData(undefined, false)
+    }
+  }
+
+  private _tryCompleteReceivedData(headerInfo: ParsedHeaderInfo | undefined, errorOnFailure: boolean) {
+    const headerBuffer = _.first(this.receivedBuffers)
+    if (headerBuffer) {
+      headerInfo = headerInfo || (parseMessageHeader(headerBuffer) as ParsedHeaderInfo)
+
+      const buffersLength = this.receivedBuffers.map(b => b.length).reduce((a, b) => a + b, 0)
+      if (buffersLength >= headerInfo.totalLength) {
+        let fullData = Buffer.concat(this.receivedBuffers)
+        this.receivedBuffers = []
+
+        if (fullData.length > headerInfo.totalLength) {
+          console.log(`Received buffers too long. Discarding ${fullData.length - headerInfo.totalLength} bytes`)
+          fullData = fullData.slice(0, headerInfo.totalLength)
+        }
+
+        try {
+          const parsed = parseMessage(fullData)
+          console.log('parsed', parsed)
+        } catch (e) {
+          console.error('parse error', e)
+        }
+      } else if (errorOnFailure) {
+        console.log(`Discarding ${this.receivedBuffers.length} buffers with not enough data`)
+        this.receivedBuffers = []
+      }
+
+      //   console.log('buffers to process', this.receivedBuffers.length)
+    }
   }
 
   private _connectInner() {

@@ -3,9 +3,9 @@ import { encodeToHexBytes } from './util'
 
 // control codes
 const TERMINATOR = 0x0d
-const SOH = 0x01
-const HEADER_RESERVED = 0x30
-const SENDER_ID = 0x30
+export const SOH = 0x01
+export const HEADER_RESERVED = 0x30
+export const SENDER_ID = 0x30
 const STX = 0x02
 const ETX = 0x03
 
@@ -47,7 +47,6 @@ function buildHeader(id: number, type: MessageType, length: number): Buffer {
     throw new Error('Body length too long')
   }
 
-  const lengthStr = length.toString(16).padStart(2, '0')
   // in hex: 01 30 _ID_ 30 _TYPE_ _LEN_ _LEN2_
   const buffer = Buffer.from([
     HEADER_RESERVED,
@@ -55,8 +54,7 @@ function buildHeader(id: number, type: MessageType, length: number): Buffer {
     SENDER_ID,
     type,
     // Length wants to be encoded as a hex string
-    lengthStr.charCodeAt(0),
-    lengthStr.charCodeAt(1)
+    ...encodeToHexBytes(length)
   ])
 
   return buffer

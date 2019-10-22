@@ -1,4 +1,4 @@
-import { calculateCheckCode } from './builder'
+import { calculateCheckCode, SOH, SENDER_ID } from './builder'
 import { MessageType, PowerModes } from './enums'
 import { bufferReadHex, bufferReadString } from './util'
 
@@ -6,6 +6,32 @@ import { bufferReadHex, bufferReadString } from './util'
 //   SET: '00',
 //   MOMENTARY: '01'
 // }
+
+export interface ParsedHeaderInfo {
+  deviceId: number
+  type: number
+  bodyLength: number
+  totalLength: number
+}
+
+export function parseMessageHeader(message: Buffer): ParsedHeaderInfo | undefined {
+  if (message.readUInt8(0) !== SOH || message.readUInt8(2) !== SENDER_ID) {
+    return undefined
+  }
+
+  const bodyLength = bufferReadHex(message, 5, 1)
+  const type = message.readUInt8(4) as MessageType
+  if (!MessageType[type]) {
+    return undefined
+  }
+
+  return {
+    deviceId: message.readUInt8(2),
+    type,
+    bodyLength,
+    totalLength: bodyLength + 9
+  }
+}
 
 export function parseMessage(message: Buffer) {
   const checksumByte = message.readUInt8(message.length - 2)

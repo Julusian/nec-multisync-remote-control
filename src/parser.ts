@@ -1,4 +1,5 @@
-import { calculateCheckCode, SOH, SENDER_ID } from './builder'
+import { calculateCheckCode } from './builder'
+import { SENDER_ID, SOH } from './constants'
 import { MessageType, PowerModes } from './enums'
 import { bufferReadHex, bufferReadString } from './util'
 

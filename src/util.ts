@@ -41,3 +41,7 @@ export function bufferReadString(buffer: Buffer, offset: number, length: number)
   }
   return res
 }
+
+export function assertUnreachable(_never: never): never {
+  throw new Error("Didn't expect to get here")
+}

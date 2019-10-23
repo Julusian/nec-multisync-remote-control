@@ -1,13 +1,24 @@
 import { EventEmitter } from 'events'
 import { Socket } from 'net'
-import { buildGetCommand } from './builder'
-import { parseMessageHeader, ParsedHeaderInfo, parseMessage } from './parser'
 import * as _ from 'underscore'
+import { buildGetCommand } from './builder'
+import { MONITOR_ID_ALL, MonitorId } from './enums'
+import { convertMonitorId } from './id'
+import { ParsedHeaderInfo, parseMessage, parseMessageHeader } from './parser'
 
 const DEFAULT_PORT = 7142
+const MESSAGE_TIMEOUT = 1000
 
 export interface NecOptions {
   debug?: false
+}
+
+interface MessageQueueEntry {
+  // TODO - some other message info
+  payload: Buffer
+  resolve: (res: any) => void
+  reject: (err: any) => void
+  sendTime?: number
 }
 
 export class NecClient extends EventEmitter {
@@ -15,27 +26,44 @@ export class NecClient extends EventEmitter {
   private readonly socket: Socket
 
   private receivedBuffers: Buffer[] = []
+  private messageQueue: MessageQueueEntry[] = []
+  private inFlightMessage: MessageQueueEntry | undefined
+  private inFlightTimeout: NodeJS.Timer | undefined
 
   private _connected: boolean = false
   private _connectionActive: boolean = false // True when connected/connecting/reconnecting
   private _retryConnectTimeout: NodeJS.Timer | null = null
   private _host: string = ''
-  private _id: number = 1
+  private _id: number = MONITOR_ID_ALL.charCodeAt(0)
 
   constructor(options: NecOptions = {}) {
     super()
 
     this.debug = !!options.debug
 
-    console.log(this._id, this.debug)
+    console.log(this.debug)
 
     this.socket = new Socket()
     // this.socket.setEncoding('ascii')
     this.socket.on('error', e => this.emit('error', e))
     this.socket.on('close', () => {
       console.log('close')
-      //   if (this._connected) this.emit('disconnected')
-      //   this._connected = false
+      if (this._connected) {
+        this.emit('disconnected')
+      }
+      this._connected = false
+
+      if (this.inFlightTimeout) {
+        clearTimeout(this.inFlightTimeout)
+        this.inFlightTimeout = undefined
+      }
+      if (this.inFlightMessage) {
+        this.inFlightMessage.reject('disconnected')
+        this.inFlightMessage = undefined
+      }
+      const oldMessages = this.messageQueue
+      this.messageQueue = []
+      oldMessages.forEach(msg => msg.reject('disconnected'))
 
       //   if (this._pingInterval) {
       //     clearInterval(this._pingInterval)
@@ -50,21 +78,25 @@ export class NecClient extends EventEmitter {
     this.socket.on('connect', () => {
       console.log('Connected')
 
-      const test = buildGetCommand(this._id, 'MODEL') as Buffer
+      this._connected = true
 
-      console.log('sending', test.toString('hex'))
-      this.socket.write(test.toString('hex'), 'hex')
+      this.emit('connected')
     })
   }
 
-  public connect(host: string, id: number) {
+  public connect(host: string, id: MonitorId) {
     if (this._connected || this._connectionActive) {
       return
     }
     this._connectionActive = true
 
+    const validatedId = convertMonitorId(id)
+    if (validatedId === undefined) {
+      throw new Error(`Invalid monitor/group id ${id}`)
+    }
+
     this._host = host
-    this._id = id
+    this._id = validatedId
     this._connectInner()
   }
 
@@ -87,6 +119,22 @@ export class NecClient extends EventEmitter {
         return reject(e)
       }
     })
+  }
+
+  public sendGetCommand(command: 'MODEL' | 'POWER' | 'SERIAL'): Promise<any> | undefined {
+    const payload = buildGetCommand(this._id, command)
+    if (payload) {
+      return new Promise((resolve, reject) => {
+        this.messageQueue.push({
+          payload,
+          resolve,
+          reject
+        })
+        this._trySendQueued()
+      })
+    } else {
+      return undefined
+    }
   }
 
   private _handleReceivedData(data: Buffer) {
@@ -126,18 +174,54 @@ export class NecClient extends EventEmitter {
           fullData = fullData.slice(0, headerInfo.totalLength)
         }
 
-        try {
-          const parsed = parseMessage(fullData)
-          console.log('parsed', parsed)
-        } catch (e) {
-          console.error('parse error', e)
-        }
+        this._parseReceivedData(fullData)
       } else if (errorOnFailure) {
         console.log(`Discarding ${this.receivedBuffers.length} buffers with not enough data`)
         this.receivedBuffers = []
       }
 
       //   console.log('buffers to process', this.receivedBuffers.length)
+    }
+  }
+
+  private _parseReceivedData(fullData: Buffer) {
+    if (this.inFlightTimeout) {
+      clearTimeout(this.inFlightTimeout)
+      this.inFlightTimeout = undefined
+    }
+
+    try {
+      const parsed = parseMessage(fullData)
+      console.log('parsed', parsed)
+      if (this.inFlightMessage) {
+        this.inFlightMessage.resolve(parsed)
+        this.inFlightMessage = undefined
+      } else {
+        console.error('received data with nothing inflight')
+      }
+    } catch (e) {
+      console.error('parse error', e)
+      if (this.inFlightMessage) {
+        this.inFlightMessage.reject(e)
+        this.inFlightMessage = undefined
+      } else {
+        console.error('received data with nothing inflight')
+      }
+      this._trySendQueued()
+    }
+  }
+
+  private _trySendQueued() {
+    if (!this.inFlightMessage && this._connected) {
+      this.inFlightMessage = this.messageQueue.shift()
+      if (this.inFlightMessage) {
+        console.log('sending')
+        this.socket.write(this.inFlightMessage.payload)
+        this.inFlightTimeout = setTimeout(() => {
+          console.log('Timeout waiting for response')
+          // TODO - this should reject the inFlight promise, but should it close the connection, as stuff will be mismatched?
+        }, MESSAGE_TIMEOUT)
+      }
     }
   }
 

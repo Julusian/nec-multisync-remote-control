@@ -1,13 +1,6 @@
+import { ETX, HEADER_RESERVED, SENDER_ID, SOH, STX, TERMINATOR } from './constants'
 import { MessageType } from './enums'
 import { encodeToHexBytes } from './util'
-
-// control codes
-const TERMINATOR = 0x0d
-export const SOH = 0x01
-export const HEADER_RESERVED = 0x30
-export const SENDER_ID = 0x30
-const STX = 0x02
-const ETX = 0x03
 
 export interface CommandSpec {
   code: number
@@ -50,7 +43,7 @@ function buildHeader(id: number, type: MessageType, length: number): Buffer {
   // in hex: 01 30 _ID_ 30 _TYPE_ _LEN_ _LEN2_
   const buffer = Buffer.from([
     HEADER_RESERVED,
-    'A'.charCodeAt(0) || id,
+    id,
     SENDER_ID,
     type,
     // Length wants to be encoded as a hex string
@@ -89,7 +82,7 @@ export function saveSettings(id: number): Buffer {
   return wrapWithCheckCode(Buffer.concat([header, body]))
 }
 
-export function buildGetCommand(id: number, command: string): Buffer | null {
+export function buildGetCommand(id: number, command: 'SERIAL' | 'MODEL' | 'POWER'): Buffer | null {
   let rawCommand: number
   switch (command) {
     case 'SERIAL':

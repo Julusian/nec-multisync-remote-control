@@ -13,3 +13,6 @@ export enum PowerModes {
   Suspend = 0x0003,
   Off = 0x0004
 }
+
+export const MONITOR_ID_ALL = '*'
+export type MonitorId = '*' | string

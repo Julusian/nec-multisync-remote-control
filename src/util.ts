@@ -17,7 +17,7 @@ export function bufferWriteHex(buffer: Buffer, value: number, offset: number, le
   }
 
   for (let i = 0; i < length * 2; i++) {
-    buffer.writeUInt8(encoded[0], offset + i)
+    buffer.writeUInt8(encoded[i], offset + i)
   }
 }
 
@@ -44,4 +44,8 @@ export function bufferReadString(buffer: Buffer, offset: number, length: number)
 
 export function assertUnreachable(_never: never): never {
   throw new Error("Didn't expect to get here")
+}
+
+export function literal<T>(val: T): T {
+  return val
 }

@@ -1,10 +1,13 @@
 import { EventEmitter } from 'events'
 import { Socket } from 'net'
 import * as _ from 'underscore'
-import { buildGetCommand } from './builder'
-import { MONITOR_ID_ALL, MonitorId } from './enums'
+import { buildMessage } from './builder'
+import { MONITOR_ID_ALL, MonitorId, MessageType } from './enums'
 import { convertMonitorId } from './id'
 import { ParsedHeaderInfo, parseMessage, parseMessageHeader } from './parser'
+import * as objectPath from 'object-path'
+import { COMMANDS, SomeCommandSpec } from './commands'
+import { assertUnreachable } from './util'
 
 const DEFAULT_PORT = 7142
 const MESSAGE_TIMEOUT = 1000
@@ -15,6 +18,7 @@ export interface NecOptions {
 
 interface MessageQueueEntry {
   // TODO - some other message info
+  commandId: number[]
   payload: Buffer
   resolve: (res: any) => void
   reject: (err: any) => void
@@ -121,20 +125,101 @@ export class NecClient extends EventEmitter {
     })
   }
 
-  public sendGetCommand(command: 'MODEL' | 'POWER' | 'SERIAL'): Promise<any> | undefined {
-    const payload = buildGetCommand(this._id, command)
-    if (payload) {
-      return new Promise((resolve, reject) => {
-        this.messageQueue.push({
-          payload,
-          resolve,
-          reject
-        })
-        this._trySendQueued()
-      })
-    } else {
-      return undefined
+  public sendGetCommand(command: 'MODEL' | 'POWER' | 'SERIAL'): Promise<string | number> {
+    let sendCommand: number[]
+    let response: number[]
+    // let resultPage: number
+    switch (command) {
+      case 'SERIAL':
+        sendCommand = [0xc2, 0x16]
+        response = [0xc3, 0x16]
+        // page = 0xc2
+        // // resultPage = 0xc3
+        // opcode = 0x16
+        break
+      case 'MODEL':
+        sendCommand = [0xc2, 0x17]
+        response = [0xc3, 0x17]
+        // page = 0xc2
+        // // resultPage = 0xc3
+        // opcode = 0x17
+        break
+      case 'POWER':
+        sendCommand = [0x01, 0xd6]
+        response = [0xd6]
+        // page = 0x01
+        // opcode = 0xd6
+        break
+      default:
+        assertUnreachable(command)
+        throw new Error(`Unknown command: ${command}`)
     }
+
+    const payload = buildMessage(this._id, MessageType.Command, sendCommand)
+    // const payload = buildGetCommand(this._id, page, opcode)
+    return this._queueMessage(response, payload)
+  }
+
+  public sendSetCommand(command: 'POWER', value: number): Promise<number> {
+    const codes = [0xc2, 0x03, 0xd6, 0x00, value]
+    // let opcode: number
+    // let page: number
+    // let resultPage: number
+    switch (command) {
+      case 'POWER':
+        // page =
+        // resultPage = 0x01
+        // opcode = 0xd6
+        break
+      default:
+        assertUnreachable(command)
+        throw new Error(`Unknown command: ${command}`)
+    }
+
+    const payload = buildMessage(this._id, MessageType.Command, codes)
+    return this._queueMessage([0xc2, 0x03, 0xd6], payload)
+  }
+
+  public sendGetByKey(key: string): Promise<number> {
+    const spec = objectPath.get<SomeCommandSpec | undefined>(COMMANDS, key, undefined)
+    if (spec === undefined) {
+      throw new Error(`Invalid key: "${key}"`)
+    }
+
+    return this.sendGetBySpec(spec)
+  }
+
+  public sendGetBySpec(spec: SomeCommandSpec): Promise<number> {
+    const payload = buildMessage(this._id, MessageType.Get, [spec.page, spec.code])
+    return this._queueMessage([spec.page, spec.code], payload)
+  }
+
+  public sendSetByKey(key: string, value: number): Promise<number> {
+    const spec = objectPath.get<SomeCommandSpec | undefined>(COMMANDS, key, undefined)
+    if (spec === undefined) {
+      throw new Error(`Invalid key: "${key}"`)
+    }
+
+    return this.sendSetBySpec(spec, value)
+  }
+
+  public sendSetBySpec(spec: SomeCommandSpec, value: number): Promise<number> {
+    // TODO - validate value?
+
+    const payload = buildMessage(this._id, MessageType.Set, [spec.page, spec.code], value)
+    return this._queueMessage([spec.page, spec.code], payload)
+  }
+
+  private _queueMessage(commandId: number[], payload: Buffer): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.messageQueue.push({
+        commandId,
+        payload,
+        resolve,
+        reject
+      })
+      this._trySendQueued()
+    })
   }
 
   private _handleReceivedData(data: Buffer) {
@@ -190,23 +275,20 @@ export class NecClient extends EventEmitter {
       this.inFlightTimeout = undefined
     }
 
+    const msg = this.inFlightMessage
+    this.inFlightMessage = undefined
+    if (!msg) {
+      console.error('received data with nothing inflight')
+      return
+    }
+
     try {
-      const parsed = parseMessage(fullData)
-      console.log('parsed', parsed)
-      if (this.inFlightMessage) {
-        this.inFlightMessage.resolve(parsed)
-        this.inFlightMessage = undefined
-      } else {
-        console.error('received data with nothing inflight')
-      }
+      const parsed = parseMessage(msg.commandId, fullData)
+      console.log('result:', parsed)
+      msg.resolve(parsed)
     } catch (e) {
       console.error('parse error', e)
-      if (this.inFlightMessage) {
-        this.inFlightMessage.reject(e)
-        this.inFlightMessage = undefined
-      } else {
-        console.error('received data with nothing inflight')
-      }
+      msg.reject(e)
       this._trySendQueued()
     }
   }

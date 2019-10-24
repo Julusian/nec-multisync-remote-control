@@ -1,36 +1,17 @@
+import * as _ from 'underscore'
 import { ETX, HEADER_RESERVED, SENDER_ID, SOH, STX, TERMINATOR } from './constants'
 import { MessageType } from './enums'
 import { encodeToHexBytes } from './util'
 
-export interface CommandSpec {
-  code: number
-  page: number
-}
+export function buildMessage(id: number, type: MessageType, commandId: number[], value?: number): Buffer {
+  const body = Buffer.from([
+    STX,
+    ..._.flatten(commandId.map(c => encodeToHexBytes(c))),
+    ...(value !== undefined ? encodeToHexBytes(value) : []),
+    ETX
+  ])
 
-export function buildGet(id: number, command: CommandSpec) {
-  // in hex: 02 _OCP1_ _OCP2_ _OP1_ _OP2_ 03
-  const body = Buffer.alloc(6)
-  body.writeUInt8(STX, 0)
-  body.writeUInt16LE(command.page, 1)
-  body.writeUInt16LE(command.code, 3)
-  body.writeUInt8(ETX, 5)
-
-  const header = buildHeader(id, MessageType.Get, body.length)
-
-  return wrapWithCheckCode(Buffer.concat([header, body]))
-}
-
-export function buildSet(id: number, command: CommandSpec, value: number): Buffer {
-  // in hex: 02 _OCP1_ _OCP2_ _OP1_ _OP2_ _V1_ _V2_ _V3_ _V4_ 03
-  const body = Buffer.alloc(10)
-  body.writeUInt8(STX, 0)
-  body.writeUInt16LE(command.page, 1)
-  body.writeUInt16LE(command.code, 3)
-  body.writeUInt32LE(value, 5)
-  body.writeUInt8(ETX, 9)
-
-  const header = buildHeader(id, MessageType.Set, body.length)
-
+  const header = buildHeader(id, type, body.length)
   return wrapWithCheckCode(Buffer.concat([header, body]))
 }
 
@@ -75,48 +56,9 @@ function wrapWithCheckCode(payload: Buffer) {
   return result
 }
 
-export function saveSettings(id: number): Buffer {
-  const body = Buffer.from([STX, 0x0c, ETX])
-  const header = buildHeader(id, MessageType.Command, body.length)
+// export function saveSettings(id: number): Buffer {
+//   const body = Buffer.from([STX, 0x0c, ETX])
+//   const header = buildHeader(id, MessageType.Command, body.length)
 
-  return wrapWithCheckCode(Buffer.concat([header, body]))
-}
-
-export function buildGetCommand(id: number, command: 'SERIAL' | 'MODEL' | 'POWER'): Buffer | null {
-  let rawCommand: number
-  switch (command) {
-    case 'SERIAL':
-      rawCommand = 0xc216
-      break
-    case 'MODEL':
-      rawCommand = 0xc217
-      break
-    case 'POWER':
-      rawCommand = 0x01d6
-      break
-    default:
-      return null
-  }
-  const body = Buffer.from([STX, ...encodeToHexBytes(rawCommand), ETX])
-  const header = buildHeader(id, MessageType.Command, body.length)
-
-  return wrapWithCheckCode(Buffer.concat([header, body]))
-}
-
-// module.exports.buildSetCommand = function(id, command, data){
-//   var encodedCommand;
-//   switch(command){
-//     case "POWER":
-//       var powerMode = linq.from(Commands.POWER_MODES)
-//         .firstOrDefault(function(m){ return m.key == data; }, { value: Commands.POWER_MODES['OFF'] }).value;
-//       encodedCommand = encodeHex("C203D6") + encodeHex(powerMode);
-//     break;
-//     default:
-//       return null;
-//   }
-
-//   var body = STX + encodedCommand + ETX;
-//   var primary = buildHeader(id, Type.COMMAND, body.length/2) + body;
-
-//   return SOH + primary + module.exports.calculateCheckCode(primary) + TERMINATOR;
-// };
+//   return wrapWithCheckCode(Buffer.concat([header, body]))
+// }

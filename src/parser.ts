@@ -1,6 +1,6 @@
 import { calculateCheckCode } from './builder'
 import { SENDER_ID, SOH } from './constants'
-import { MessageType, PowerModes } from './enums'
+import { MessageType } from './enums'
 import { bufferReadHex, bufferReadString } from './util'
 
 // var OperationType = {
@@ -34,7 +34,13 @@ export function parseMessageHeader(message: Buffer): ParsedHeaderInfo | undefine
   }
 }
 
-export function parseMessage(message: Buffer) {
+export interface ParsedResponse {
+  page: number
+  opcode: number
+  value: string | number
+}
+
+export function parseMessage(commandId: number[], message: Buffer): string | number {
   const checksumByte = message.readUInt8(message.length - 2)
   const calculatedChecksum = calculateCheckCode(message.slice(1, message.length - 2))
   if (checksumByte !== calculatedChecksum) {
@@ -42,7 +48,7 @@ export function parseMessage(message: Buffer) {
   }
 
   const headerProps = parseHeader(message)
-  console.log('header', headerProps)
+  // console.log('header', headerProps)
 
   const body = message.slice(7, message.length - 2)
   if (body.length !== headerProps.length) {
@@ -52,9 +58,14 @@ export function parseMessage(message: Buffer) {
   switch (headerProps.type) {
     case MessageType.GetReply:
     case MessageType.SetReply:
-      return parseGetSetReply(body)
+      const res = parseGetSetReply(body)
+      if (commandId[0] !== res.page || commandId[1] !== res.opcode) {
+        throw new Error('wrong command response')
+      }
+
+      return res.value
     case MessageType.CommandReply:
-      return parseCommandReply(body)
+      return parseCommandReply(commandId, body)
     default:
       throw new Error(`Message received of unsupported type: ${MessageType[headerProps.type]}`)
   }
@@ -73,21 +84,18 @@ function parseHeader(message: Buffer) {
   }
 }
 
-function parseGetSetReply(_body: Buffer) {
-  //   var rawResult = message.substr(1 * 2, 2 * 2) // chars 1+2
-  //   var rawPage = message.substr(3 * 2, 2 * 2) // chars 3+4
-  //   var rawCode = message.substr(5 * 2, 2 * 2) // chars 5+6
-  //   var rawType = message.substr(7 * 2, 2 * 2) // chars 7+8
-  //   var rawMaxValue = message.substr(9 * 2, 4 * 2) // chars 9-12
-  //   var rawCurrentValue = message.substr(13 * 2, 4 * 2) // chars 13+14
-  //   var commandResult = decodeHex(rawResult)
-  //   var page = decodeHex(rawPage)
-  //   var code = decodeHex(rawCode)
-  //   var type = decodeHex(rawType)
-  //   var maxValue = decodeHex(rawMaxValue)
-  //   var currentValue = decodeHex(rawCurrentValue)
-  //   //check result was good
-  //   if (commandResult != '00') return (result.err = 'UNSUPPORTED_OPERATION')
+function parseGetSetReply(body: Buffer) {
+  const result = bufferReadHex(body, 1, 1)
+  const page = bufferReadHex(body, 3, 1)
+  const opcode = bufferReadHex(body, 5, 1)
+  // const type = bufferReadHex(body, 7, 1)
+  // const maxValue = bufferReadHex(body, 9, 2)
+  const currentValue = bufferReadHex(body, 13, 2)
+
+  // check result was good
+  if (result !== 0x00) {
+    throw new Error('Unsupported operation')
+  }
   //   var commandType = Commands.fromCodes(page, code)
   //   if (commandType === null) unknownCommand()
   //   result.command = commandType.key
@@ -99,105 +107,66 @@ function parseGetSetReply(_body: Buffer) {
   //   result.maxValue = maxValue
   //   result.value = currentValue
   //   if (commandType.value.type == 'range') result.value = parseInt(result.value, 16)
-}
-
-function unknownCommand(group: number, command: number): never {
-  throw new Error(`Unknown command - ${group.toString(16)}-${command.toString(16)}`)
-}
-
-function parseCommandReply(body: Buffer) {
-  let group = bufferReadHex(body, 1, 1)
-  console.log(group)
-  if (group === 0x02) {
-    body = body.slice(4)
-    group = bufferReadHex(body, 1, 1)
-    console.log('trim group - why?')
-  }
-  if (group === 0x01) {
-    throw new Error('Unsupported operation')
-  } else if (group === 0x00) {
-    body = body.slice(4)
-  }
-  console.log('final group', group)
-
-  const command = bufferReadHex(body, 3, 1)
-  //   console.log(body, command)
-  switch (group) {
-    case 0xd6:
-      return parseGetPower(body)
-    case 0xa1:
-      console.log('SELF DIAG')
-      break
-    case 0xc0:
-      switch (command) {
-        default:
-          unknownCommand(group, command)
-      }
-      break
-    case 0xc1:
-      switch (command) {
-        default:
-          unknownCommand(group, command)
-      }
-      break
-    case 0xc2:
-      switch (command) {
-        case 0x03:
-          return parseSetPower(body)
-        default:
-          unknownCommand(group, command)
-      }
-      break
-    case 0xc3:
-      switch (command) {
-        case 0x16:
-          return parseStringResponse(body, 'SERIAL')
-        case 0x17:
-          return parseStringResponse(body, 'MODEL')
-        default:
-          unknownCommand(group, command)
-      }
-      break
-  }
-  unknownCommand(group, command)
-  return null
-}
-
-function parseGetPower(body: Buffer) {
-  const state = bufferReadHex(body, 9, 2)
-
-  if (PowerModes[state] === undefined) {
-    throw new Error(`Unknown power state 0x${state.toString(16)}`)
-  }
-
-  // TODO - typings
+  // TODO - if range, decode hex?
   return {
-    command: 'POWER',
-    state: state as PowerModes
+    page,
+    opcode,
+    value: currentValue
   }
 }
 
-function parseSetPower(body: Buffer) {
-  const state = bufferReadHex(body, 7, 2)
+/**
+ * Parsing command responses is a lot more complex, as there doesnt appear to be much uniformity in them.
+ */
+function parseCommandReply(commandId: number[], body: Buffer): string | number {
+  // console.log('command response', body, commandId)
 
-  if (PowerModes[state] === undefined) {
-    throw new Error(`Unknown power state 0x${state.toString(16)}`)
-  }
+  switch (commandId[0]) {
+    case 0xd6: {
+      // Power get response
+      const page = bufferReadHex(body, 5, 1)
+      if (page !== commandId[0]) {
+        throw new Error('wrong command response')
+      }
 
-  // TODO - typings
-  return {
-    command: 'POWER',
-    state: state as PowerModes
-  }
-}
+      const result = bufferReadHex(body, 3, 1)
+      if (result !== 0x00) {
+        // page is actually result
+        throw new Error('Unsupported operation')
+      }
 
-function parseStringResponse(body: Buffer, command: string) {
-  const strLength = body.length / 2 - 5 - 1
-  const decodedStr = bufferReadString(body, 5, strLength).replace(/\0/g, '')
+      return bufferReadHex(body, 13, 2)
+    }
+    case 0xc2: {
+      // Power set response
+      const result = bufferReadHex(body, 1, 1)
+      if (result !== 0x00) {
+        // page is actually result
+        throw new Error('Unsupported operation')
+      }
 
-  // TODO - typings
-  return {
-    command,
-    serial: decodedStr
+      const actualPage = bufferReadHex(body, 3, 1)
+      const opcode = bufferReadHex(body, 5, 1)
+      if (actualPage !== commandId[0] || opcode !== commandId[1]) {
+        throw new Error('wrong command response')
+      }
+
+      return bufferReadHex(body, 9, 2)
+    }
+    case 0xc3: {
+      const page = bufferReadHex(body, 1, 1)
+      const opcode = bufferReadHex(body, 3, 1)
+      // console.log(page, opcode, commandId)
+      if (page !== commandId[0] || opcode !== commandId[1]) {
+        throw new Error('wrong command response')
+      }
+
+      const strLength = body.length / 2 - 5 - 1
+      const decodedStr = bufferReadString(body, 5, strLength).replace(/\0/g, '')
+
+      return decodedStr
+    }
+    default:
+      throw new Error('Unknown command')
   }
 }

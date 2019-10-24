@@ -1,12 +1,12 @@
 import { EventEmitter } from 'events'
 import { Socket } from 'net'
+import * as objectPath from 'object-path'
 import * as _ from 'underscore'
 import { buildMessage } from './builder'
-import { MONITOR_ID_ALL, MonitorId, MessageType } from './enums'
+import { COMMANDS, SomeCommandSpec } from './commands'
+import { MessageType, MONITOR_ID_ALL, MonitorId } from './enums'
 import { convertMonitorId } from './id'
 import { ParsedHeaderInfo, parseMessage, parseMessageHeader } from './parser'
-import * as objectPath from 'object-path'
-import { COMMANDS, SomeCommandSpec } from './commands'
 import { assertUnreachable } from './util'
 
 const DEFAULT_PORT = 7142
@@ -17,10 +17,9 @@ export interface NecOptions {
 }
 
 interface MessageQueueEntry {
-  // TODO - some other message info
   commandId: number[]
   payload: Buffer
-  resolve: (res: any) => void
+  resolve: (res: string | number) => void
   reject: (err: any) => void
   sendTime?: number
 }
@@ -101,7 +100,7 @@ export class NecClient extends EventEmitter {
 
     this._host = host
     this._id = validatedId
-    this._connectInner()
+    this.socket.connect(DEFAULT_PORT, this._host)
   }
 
   public disconnect(): Promise<void> {
@@ -125,30 +124,17 @@ export class NecClient extends EventEmitter {
     })
   }
 
-  public sendGetCommand(command: 'MODEL' | 'POWER' | 'SERIAL'): Promise<string | number> {
+  public sendGetStringCommand(command: 'MODEL' | 'SERIAL'): Promise<string | number> {
     let sendCommand: number[]
     let response: number[]
-    // let resultPage: number
     switch (command) {
       case 'SERIAL':
         sendCommand = [0xc2, 0x16]
         response = [0xc3, 0x16]
-        // page = 0xc2
-        // // resultPage = 0xc3
-        // opcode = 0x16
         break
       case 'MODEL':
         sendCommand = [0xc2, 0x17]
         response = [0xc3, 0x17]
-        // page = 0xc2
-        // // resultPage = 0xc3
-        // opcode = 0x17
-        break
-      case 'POWER':
-        sendCommand = [0x01, 0xd6]
-        response = [0xd6]
-        // page = 0x01
-        // opcode = 0xd6
         break
       default:
         assertUnreachable(command)
@@ -156,28 +142,39 @@ export class NecClient extends EventEmitter {
     }
 
     const payload = buildMessage(this._id, MessageType.Command, sendCommand)
-    // const payload = buildGetCommand(this._id, page, opcode)
     return this._queueMessage(response, payload)
   }
 
-  public sendSetCommand(command: 'POWER', value: number): Promise<number> {
-    const codes = [0xc2, 0x03, 0xd6, 0x00, value]
-    // let opcode: number
-    // let page: number
-    // let resultPage: number
+  public sendGetCommand(command: 'POWER'): Promise<number> {
+    let sendCommand: number[]
+    let response: number[]
     switch (command) {
       case 'POWER':
-        // page =
-        // resultPage = 0x01
-        // opcode = 0xd6
+        sendCommand = [0x01, 0xd6]
+        response = [0xd6]
         break
       default:
         assertUnreachable(command)
         throw new Error(`Unknown command: ${command}`)
     }
 
-    const payload = buildMessage(this._id, MessageType.Command, codes)
-    return this._queueMessage([0xc2, 0x03, 0xd6], payload)
+    const payload = buildMessage(this._id, MessageType.Command, sendCommand)
+    return this._queueMessage(response, payload)
+  }
+
+  public sendSetCommand(command: 'POWER', value: number): Promise<number> {
+    let codes: number[]
+    switch (command) {
+      case 'POWER':
+        codes = [0xc2, 0x03, 0xd6]
+        break
+      default:
+        assertUnreachable(command)
+        throw new Error(`Unknown command: ${command}`)
+    }
+
+    const payload = buildMessage(this._id, MessageType.Command, codes, [0x00, value])
+    return this._queueMessage(codes, payload)
   }
 
   public sendGetByKey(key: string): Promise<number> {
@@ -206,7 +203,7 @@ export class NecClient extends EventEmitter {
   public sendSetBySpec(spec: SomeCommandSpec, value: number): Promise<number> {
     // TODO - validate value?
 
-    const payload = buildMessage(this._id, MessageType.Set, [spec.page, spec.code], value)
+    const payload = buildMessage(this._id, MessageType.Set, [spec.page, spec.code], [value])
     return this._queueMessage([spec.page, spec.code], payload)
   }
 
@@ -284,20 +281,20 @@ export class NecClient extends EventEmitter {
 
     try {
       const parsed = parseMessage(msg.commandId, fullData)
-      console.log('result:', parsed)
+      // console.log('result:', parsed)
       msg.resolve(parsed)
     } catch (e) {
       console.error('parse error', e)
       msg.reject(e)
-      this._trySendQueued()
     }
+    this._trySendQueued()
   }
 
   private _trySendQueued() {
     if (!this.inFlightMessage && this._connected) {
       this.inFlightMessage = this.messageQueue.shift()
       if (this.inFlightMessage) {
-        console.log('sending')
+        // console.log('sending')
         this.socket.write(this.inFlightMessage.payload)
         this.inFlightTimeout = setTimeout(() => {
           console.log('Timeout waiting for response')
@@ -305,49 +302,5 @@ export class NecClient extends EventEmitter {
         }, MESSAGE_TIMEOUT)
       }
     }
-  }
-
-  private _connectInner() {
-    // this._commandQueue = []
-    // this._queueCommand(new DummyConnectCommand())
-    //   .then(c => {
-    //     // TODO - we can filter supported versions here. for now we shall not as it is likely that there will not be any issues
-    //     // if (c.protocolVersion !== 1.6) {
-    //     // 	throw new Error('unknown protocol version: ' + c.protocolVersion)
-    //     // }
-
-    //     if (this._pingPeriod > 0) {
-    //       const cmd = new WatchdogPeriodCommand(1 + Math.round(this._pingPeriod / 1000))
-
-    //       // force the command to send
-    //       this._commandQueue = []
-    //       const prom = this._queueCommand(cmd)
-    //       this._sendQueuedCommand()
-    //       return prom
-    //         .then(() => {
-    //           this._logDebug('ping: setting up')
-    //           this._pingInterval = setInterval(() => {
-    //             if (this.connected) this._performPing().catch(e => this.emit('error', e))
-    //           }, this._pingPeriod)
-    //         })
-    //         .then(() => c)
-    //     }
-
-    //     return c
-    //   })
-    //   .then(c => {
-    //     this._connected = true
-    //     this.emit('connected', c)
-    //   })
-    //   .catch(e => {
-    //     this._connected = false
-    //     this.socket.end()
-    //     this.emit('error', 'connection failed', e)
-    //     this._log('connection failed', e)
-
-    //     this._triggerRetryConnection()
-    //   })
-
-    this.socket.connect(DEFAULT_PORT, this._host)
   }
 }

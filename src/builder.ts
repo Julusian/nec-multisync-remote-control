@@ -3,11 +3,11 @@ import { ETX, HEADER_RESERVED, SENDER_ID, SOH, STX, TERMINATOR } from './constan
 import { MessageType } from './enums'
 import { encodeToHexBytes } from './util'
 
-export function buildMessage(id: number, type: MessageType, commandId: number[], value?: number): Buffer {
+export function buildMessage(id: number, type: MessageType, commandId: number[], value?: number[]): Buffer {
   const body = Buffer.from([
     STX,
     ..._.flatten(commandId.map(c => encodeToHexBytes(c))),
-    ...(value !== undefined ? encodeToHexBytes(value) : []),
+    ..._.flatten((value || []).map(c => encodeToHexBytes(c))),
     ETX
   ])
 

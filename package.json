@@ -1,19 +1,19 @@
 {
-  "name": "nec-p401",
+  "name": "nec-multisync-remote-control",
   "version": "0.0.1",
-  "description": "Nec P401 (and similar) remote control",
+  "description": "Nec Multisync (eg P401, P554) remote control",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Julusian/nec-p401.git"
+    "url": "git+https://github.com/Julusian/nec-multisync-remote-control.git"
   },
   "author": "Julian Waller <git@julusian.co.uk>",
   "bugs": {
-    "url": "https://github.com/Julusian/nec-p401/issues"
+    "url": "https://github.com/Julusian/nec-multisync-remote-control/issues"
   },
-  "homepage": "https://github.com/Julusian/nec-p401",
+  "homepage": "https://github.com/Julusian/nec-multisync-remote-control",
   "scripts": {
     "build": "trash dist && yarn build:main",
     "build:main": "tsc -p tsconfig.build.json",
@@ -24,6 +24,12 @@
     "validate:dependencies": "yarn audit && yarn license-validate",
     "license-validate": "node-license-validator -p -d --allow-licenses MIT BSD BSD-3-Clause ISC Apache"
   },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.MD",
+    "CHANGELOG.MD"
+  ],
   "dependencies": {
     "object-path": "^0.11.4",
     "underscore": "^1.9.1"

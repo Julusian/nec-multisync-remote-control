@@ -1,8 +1,10 @@
 const { NecClient, NecEnums } = require('./dist')
 
 const client = new NecClient({ debug: true })
+client.on('log', l => console.log(`Conn: ${l}`))
 client.connect('10.42.250.115', 'A')
 client.on('connected', async () => {
+  try {
   console.log('connected2')
 
   console.log('model')
@@ -27,4 +29,9 @@ client.on('connected', async () => {
   console.log(await client.sendSetByKey('PICTURE.BRIGHTNESS', brightness === 100 ? 50 : 100))
 
   console.log('done')
+  await client.disconnect()
+  } catch (e) {
+    console.error(`err: ${e}`)
+    process.exit(1)
+  }
 })

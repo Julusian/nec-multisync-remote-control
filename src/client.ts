@@ -25,6 +25,16 @@ interface MessageQueueEntry {
 }
 
 export class NecClient extends EventEmitter {
+  public on!: ((event: 'error', listener: (message: any) => void) => this) &
+    ((event: 'log', listener: (message: string) => void) => this) &
+    ((event: 'connected', listener: () => void) => this) &
+    ((event: 'disconnected', listener: () => void) => this)
+
+  public emit!: ((event: 'error', message: any) => boolean) &
+    ((event: 'log', message: string) => boolean) &
+    ((event: 'connected') => boolean) &
+    ((event: 'disconnected') => boolean)
+
   private readonly debug: boolean
   private readonly socket: Socket
 
@@ -44,13 +54,14 @@ export class NecClient extends EventEmitter {
 
     this.debug = !!options.debug
 
-    console.log(this.debug)
-
     this.socket = new Socket()
     // this.socket.setEncoding('ascii')
     this.socket.on('error', e => this.emit('error', e))
     this.socket.on('close', () => {
-      console.log('close')
+      if (this.debug) {
+        this.emit('log', 'Connection closed')
+      }
+
       if (this._connected) {
         this.emit('disconnected')
       }
@@ -79,7 +90,9 @@ export class NecClient extends EventEmitter {
     this.socket.on('data', d => this._handleReceivedData(d))
 
     this.socket.on('connect', () => {
-      console.log('Connected')
+      if (this.debug) {
+        this.emit('log', 'Connected')
+      }
 
       this._connected = true
 
@@ -224,7 +237,10 @@ export class NecClient extends EventEmitter {
     if (headerInfo) {
       // Start of new message
       if (this.receivedBuffers.length !== 0) {
-        console.log('Received new header with some buffers to finish off')
+        if (this.debug) {
+          this.emit('log', 'Received new header with some buffers to finish off')
+        }
+
         this._tryCompleteReceivedData(undefined, true)
         this.receivedBuffers = []
       }
@@ -234,7 +250,7 @@ export class NecClient extends EventEmitter {
       this._tryCompleteReceivedData(headerInfo, false)
     } else {
       if (this.receivedBuffers.length === 0) {
-        console.log('Received middle packet with no waiting header')
+        this.emit('log', 'Received middle packet with no waiting header')
       }
       this.receivedBuffers.push(data)
       this._tryCompleteReceivedData(undefined, false)
@@ -252,13 +268,13 @@ export class NecClient extends EventEmitter {
         this.receivedBuffers = []
 
         if (fullData.length > headerInfo.totalLength) {
-          console.log(`Received buffers too long. Discarding ${fullData.length - headerInfo.totalLength} bytes`)
+          this.emit('log', `Received buffers too long. Discarding ${fullData.length - headerInfo.totalLength} bytes`)
           fullData = fullData.slice(0, headerInfo.totalLength)
         }
 
         this._parseReceivedData(fullData)
       } else if (errorOnFailure) {
-        console.log(`Discarding ${this.receivedBuffers.length} buffers with not enough data`)
+        this.emit('log', `Discarding ${this.receivedBuffers.length} buffers with not enough data`)
         this.receivedBuffers = []
       }
 
@@ -275,7 +291,7 @@ export class NecClient extends EventEmitter {
     const msg = this.inFlightMessage
     this.inFlightMessage = undefined
     if (!msg) {
-      console.error('received data with nothing inflight')
+      this.emit('log', 'received data with nothing inflight')
       return
     }
 
@@ -284,7 +300,7 @@ export class NecClient extends EventEmitter {
       // console.log('result:', parsed)
       msg.resolve(parsed)
     } catch (e) {
-      console.error('parse error', e)
+      this.emit('log', `Parse error: ${e}`)
       msg.reject(e)
     }
     this._trySendQueued()
@@ -297,7 +313,7 @@ export class NecClient extends EventEmitter {
         // console.log('sending')
         this.socket.write(this.inFlightMessage.payload)
         this.inFlightTimeout = setTimeout(() => {
-          console.log('Timeout waiting for response')
+          this.emit('log', 'Timeout waiting for response')
           // TODO - this should reject the inFlight promise, but should it close the connection, as stuff will be mismatched?
         }, MESSAGE_TIMEOUT)
       }

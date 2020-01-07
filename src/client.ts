@@ -13,7 +13,7 @@ const DEFAULT_PORT = 7142
 const MESSAGE_TIMEOUT = 1000
 
 export interface NecOptions {
-  debug?: false
+  debug?: boolean
 }
 
 interface MessageQueueEntry {

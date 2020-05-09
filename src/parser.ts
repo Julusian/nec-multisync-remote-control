@@ -30,7 +30,7 @@ export function parseMessageHeader(message: Buffer): ParsedHeaderInfo | undefine
     deviceId: message.readUInt8(2),
     type,
     bodyLength,
-    totalLength: bodyLength + 9
+    totalLength: bodyLength + 9,
   }
 }
 
@@ -80,7 +80,7 @@ function parseHeader(message: Buffer) {
 
   return {
     type,
-    length: bufferReadHex(message, 5, 1)
+    length: bufferReadHex(message, 5, 1),
   }
 }
 
@@ -111,7 +111,7 @@ function parseGetSetReply(body: Buffer) {
   return {
     page,
     opcode,
-    value: currentValue
+    value: currentValue,
   }
 }
 

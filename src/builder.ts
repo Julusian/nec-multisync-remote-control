@@ -6,9 +6,9 @@ import { encodeToHexBytes } from './util'
 export function buildMessage(id: number, type: MessageType, commandId: number[], value?: number[]): Buffer {
   const body = Buffer.from([
     STX,
-    ..._.flatten(commandId.map(c => encodeToHexBytes(c))),
-    ..._.flatten((value || []).map(c => encodeToHexBytes(c))),
-    ETX
+    ..._.flatten(commandId.map((c) => encodeToHexBytes(c))),
+    ..._.flatten((value || []).map((c) => encodeToHexBytes(c))),
+    ETX,
   ])
 
   const header = buildHeader(id, type, body.length)
@@ -28,7 +28,7 @@ function buildHeader(id: number, type: MessageType, length: number): Buffer {
     SENDER_ID,
     type,
     // Length wants to be encoded as a hex string
-    ...encodeToHexBytes(length)
+    ...encodeToHexBytes(length),
   ])
 
   return buffer

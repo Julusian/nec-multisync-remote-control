@@ -56,7 +56,7 @@ export class NecClient extends EventEmitter {
 
     this.socket = new Socket()
     // this.socket.setEncoding('ascii')
-    this.socket.on('error', e => this.emit('error', e))
+    this.socket.on('error', (e) => this.emit('error', e))
     this.socket.on('close', () => {
       if (this.debug) {
         this.emit('log', 'Connection closed')
@@ -77,7 +77,7 @@ export class NecClient extends EventEmitter {
       }
       const oldMessages = this.messageQueue
       this.messageQueue = []
-      oldMessages.forEach(msg => msg.reject('disconnected'))
+      oldMessages.forEach((msg) => msg.reject('disconnected'))
 
       //   if (this._pingInterval) {
       //     clearInterval(this._pingInterval)
@@ -87,7 +87,7 @@ export class NecClient extends EventEmitter {
       //   this._triggerRetryConnection()
     })
 
-    this.socket.on('data', d => this._handleReceivedData(d))
+    this.socket.on('data', (d) => this._handleReceivedData(d))
 
     this.socket.on('connect', () => {
       if (this.debug) {
@@ -226,7 +226,7 @@ export class NecClient extends EventEmitter {
         commandId,
         payload,
         resolve,
-        reject
+        reject,
       })
       this._trySendQueued()
     })
@@ -262,7 +262,7 @@ export class NecClient extends EventEmitter {
     if (headerBuffer) {
       headerInfo = headerInfo || (parseMessageHeader(headerBuffer) as ParsedHeaderInfo)
 
-      const buffersLength = this.receivedBuffers.map(b => b.length).reduce((a, b) => a + b, 0)
+      const buffersLength = this.receivedBuffers.map((b) => b.length).reduce((a, b) => a + b, 0)
       if (buffersLength >= headerInfo.totalLength) {
         let fullData = Buffer.concat(this.receivedBuffers)
         this.receivedBuffers = []
@@ -313,7 +313,10 @@ export class NecClient extends EventEmitter {
         // console.log('sending')
         this.socket.write(this.inFlightMessage.payload)
         this.inFlightTimeout = setTimeout(() => {
-          this.emit('log', `Timeout waiting for response for: ${this.inFlightMessage ? this.inFlightMessage.commandId : '-'}`)
+          this.emit(
+            'log',
+            `Timeout waiting for response for: ${this.inFlightMessage ? this.inFlightMessage.commandId : '-'}`
+          )
           // TODO - this should reject the inFlight promise, but should it close the connection, as stuff will be mismatched?
           if (this.inFlightMessage) {
             this.inFlightMessage.reject(new Error('Timed out'))

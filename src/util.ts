@@ -7,7 +7,7 @@ export function encodeToHexBytes(value: number, padLength?: number) {
   if (padLength) {
     str = str.padStart(padLength * 2, '0')
   }
-  return str.split('').map(b => b.charCodeAt(0))
+  return str.split('').map((b) => b.charCodeAt(0))
 }
 
 export function bufferWriteHex(buffer: Buffer, value: number, offset: number, length: number) {

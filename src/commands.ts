@@ -12,7 +12,7 @@ export type SomeCommandSpec = RangeCommandSpec | OptionCommandSpec | MomentaryCo
 export enum CommandSpecType {
   Range = 'range',
   Option = 'option',
-  Momentary = 'momentary'
+  Momentary = 'momentary',
 }
 
 export interface RangeCommandSpec extends CommandSpecBase {
@@ -43,49 +43,49 @@ export const COMMANDS = literal<CommandSpecs>({
       code: 0x10,
       type: CommandSpecType.Range,
       min: 0,
-      max: 100
+      max: 100,
     }),
     CONTRAST: literal<RangeCommandSpec>({
       page: 0x00,
       code: 0x12,
       type: CommandSpecType.Range,
       min: 0,
-      max: 100
+      max: 100,
     }),
     SHARPNESS: literal<RangeCommandSpec>({
       page: 0x00,
       code: 0x8c,
       type: CommandSpecType.Range,
       min: 0,
-      max: 82
+      max: 82,
     }),
     BLACK_LEVEL: literal<RangeCommandSpec>({
       page: 0x00,
       code: 0x92,
       type: CommandSpecType.Range,
       min: 0,
-      max: 63
+      max: 63,
     }),
     TINT: literal<RangeCommandSpec>({
       page: 0x00,
       code: 0x90,
       type: CommandSpecType.Range,
       min: 0,
-      max: 63
+      max: 63,
     }),
     COLOR: literal<RangeCommandSpec>({
       page: 0x02,
       code: 0x1f,
       type: CommandSpecType.Range,
       min: 0,
-      max: 63
+      max: 63,
     }),
     COLOR_TEMPERATURE: literal<RangeCommandSpec>({
       page: 0x00,
       code: 0x54,
       type: CommandSpecType.Range,
       min: 0,
-      max: 74
+      max: 74,
     }),
 
     COLOR_CONTROL: {
@@ -94,50 +94,50 @@ export const COMMANDS = literal<CommandSpecs>({
         code: 0x9b,
         type: CommandSpecType.Range,
         min: 0,
-        max: 100
+        max: 100,
       }),
       YELLOW: literal<RangeCommandSpec>({
         page: 0x00,
         code: 0x9c,
         type: CommandSpecType.Range,
         min: 0,
-        max: 100
+        max: 100,
       }),
       GREEN: literal<RangeCommandSpec>({
         page: 0x00,
         code: 0x9d,
         type: CommandSpecType.Range,
         min: 0,
-        max: 100
+        max: 100,
       }),
       CYAN: literal<RangeCommandSpec>({
         page: 0x00,
         code: 0x9e,
         type: CommandSpecType.Range,
         min: 0,
-        max: 100
+        max: 100,
       }),
       BLUE: literal<RangeCommandSpec>({
         page: 0x00,
         code: 0x9f,
         type: CommandSpecType.Range,
         min: 0,
-        max: 100
+        max: 100,
       }),
       MAGENTA: literal<RangeCommandSpec>({
         page: 0x00,
         code: 0xa0,
         type: CommandSpecType.Range,
         min: 0,
-        max: 100
+        max: 100,
       }),
       SATURATION: literal<RangeCommandSpec>({
         page: 0x00,
         code: 0x8a,
         type: CommandSpecType.Range,
         min: 0,
-        max: 10
-      })
+        max: 10,
+      }),
     },
 
     GAMMA_SELECTION: literal<OptionCommandSpec>({
@@ -150,8 +150,8 @@ export const COMMANDS = literal<CommandSpecs>({
         TWO_POINT_FOUR: 8,
         S: 7,
         DICOM: 5,
-        PROGRAMMABLE: 6
-      }
+        PROGRAMMABLE: 6,
+      },
     }),
 
     MOVIE_SETTINGS: {
@@ -164,15 +164,15 @@ export const COMMANDS = literal<CommandSpecs>({
           Off: 1,
           Low: 2,
           Middle: 3,
-          High: 4
-        }
+          High: 4,
+        },
       }),
       NOISE_REDUCTION: literal<RangeCommandSpec>({
         page: 0x02,
         code: 0x20,
         type: CommandSpecType.Range,
         min: 0,
-        max: 16
+        max: 16,
       }),
       FILM_MODE: literal<OptionCommandSpec>({
         page: 0x02,
@@ -180,9 +180,9 @@ export const COMMANDS = literal<CommandSpecs>({
         type: CommandSpecType.Option,
         options: {
           OFF: 1,
-          AUTO: 2
-        }
-      })
+          AUTO: 2,
+        },
+      }),
     },
 
     PICTURE_MODE: literal<OptionCommandSpec>({
@@ -197,8 +197,8 @@ export const COMMANDS = literal<CommandSpecs>({
         ISF_DAY: 6,
         ISF_NIGHT: 7,
         AMBIENT1: 11,
-        AMBIENT2: 12
-      }
+        AMBIENT2: 12,
+      },
     }),
 
     AMBIENT: {
@@ -207,14 +207,14 @@ export const COMMANDS = literal<CommandSpecs>({
         code: 0x33,
         type: CommandSpecType.Range,
         min: 0,
-        max: 100
+        max: 100,
       }),
       AMBIENT_BRIGHTNESS_HIGH: literal<RangeCommandSpec>({
         page: 0x10,
         code: 0x34,
         type: CommandSpecType.Range,
         min: 0,
-        max: 100
+        max: 100,
       }),
       CURRENT_ILLUMINANCE: literal<RangeCommandSpec>({
         page: 0x02,
@@ -222,7 +222,7 @@ export const COMMANDS = literal<CommandSpecs>({
         readonly: true,
         type: CommandSpecType.Range,
         min: 0,
-        max: 255
+        max: 255,
       }),
       BRIGHT_SENSOR: literal<RangeCommandSpec>({
         page: 0x02,
@@ -230,16 +230,16 @@ export const COMMANDS = literal<CommandSpecs>({
         readonly: true,
         type: CommandSpecType.Range,
         min: 0,
-        max: 255
-      })
+        max: 255,
+      }),
     },
 
     PICTURE_RESET: literal<MomentaryCommandSpec>({
       page: 0x02,
       code: 0xcb,
       type: CommandSpecType.Momentary,
-      value: 2
-    })
+      value: 2,
+    }),
   },
 
   // ADJUST
@@ -248,49 +248,49 @@ export const COMMANDS = literal<CommandSpecs>({
       page: 0x00,
       code: 0x1e,
       type: CommandSpecType.Momentary,
-      value: 1
+      value: 1,
     }),
     H_POSITION: literal<RangeCommandSpec>({
       page: 0x00,
       code: 0x20,
       type: CommandSpecType.Range,
       min: 0,
-      max: 255
+      max: 255,
     }),
     V_POSITION: literal<RangeCommandSpec>({
       page: 0x00,
       code: 0x30,
       type: CommandSpecType.Range,
       min: 0,
-      max: 255
+      max: 255,
     }),
     CLOCK: literal<RangeCommandSpec>({
       page: 0x00,
       code: 0x0e,
       type: CommandSpecType.Range,
       min: 0,
-      max: 255
+      max: 255,
     }),
     CLOCK_PHASE: literal<RangeCommandSpec>({
       page: 0x00,
       code: 0x3e,
       type: CommandSpecType.Range,
       min: 0,
-      max: 255
+      max: 255,
     }),
     H_RESOLUTION: literal<RangeCommandSpec>({
       page: 0x02,
       code: 0x50,
       type: CommandSpecType.Range,
       min: 0,
-      max: 255
+      max: 255,
     }),
     V_RESOLUTION: literal<RangeCommandSpec>({
       page: 0x02,
       code: 0x51,
       type: CommandSpecType.Range,
       min: 0,
-      max: 255
+      max: 255,
     }),
     INPUT_RESOLUTION: literal<OptionCommandSpec>({
       page: 0x02,
@@ -303,8 +303,8 @@ export const COMMANDS = literal<CommandSpecs>({
         '1360x768': 4,
         '1366x768': 5,
         '1400x1050': 6,
-        '1680x1050': 7
-      }
+        '1680x1050': 7,
+      },
     }),
     ZOOM_MODE: {
       BASE_ZOOM: literal<OptionCommandSpec>({
@@ -316,44 +316,44 @@ export const COMMANDS = literal<CommandSpecs>({
           '14_9': 4,
           DYNAMIC: 5,
           OFF: 1,
-          CUSTOM: 2
-        }
+          CUSTOM: 2,
+        },
       }),
       ZOOM: literal<RangeCommandSpec>({
         page: 0x02,
         code: 0x6f,
         type: CommandSpecType.Range,
         min: 1,
-        max: 201
+        max: 201,
       }),
       H_EXPANSION: literal<RangeCommandSpec>({
         page: 0x02,
         code: 0x6c,
         type: CommandSpecType.Range,
         min: 1,
-        max: 201
+        max: 201,
       }),
       V_EXPANSION: literal<RangeCommandSpec>({
         page: 0x02,
         code: 0x6d,
         type: CommandSpecType.Range,
         min: 1,
-        max: 201
+        max: 201,
       }),
       H_POSITION: literal<RangeCommandSpec>({
         page: 0x02,
         code: 0xcc,
         type: CommandSpecType.Range,
         min: 0,
-        max: 255
+        max: 255,
       }),
       V_POSITION: literal<RangeCommandSpec>({
         page: 0x02,
         code: 0xcd,
         type: CommandSpecType.Range,
         min: 0,
-        max: 255
-      })
+        max: 255,
+      }),
     },
     ASPECT: literal<OptionCommandSpec>({
       page: 0x02,
@@ -364,15 +364,15 @@ export const COMMANDS = literal<CommandSpecs>({
         FULL: 2,
         WIDE: 3,
         ZOOM: 4,
-        TRIM: 5
-      }
+        TRIM: 5,
+      },
     }),
     ADJUST_RESET: literal<MomentaryCommandSpec>({
       page: 0x02,
       code: 0xcb,
       type: CommandSpecType.Momentary,
-      value: 3
-    })
+      value: 3,
+    }),
   },
 
   AUDIO: {
@@ -381,21 +381,21 @@ export const COMMANDS = literal<CommandSpecs>({
       code: 0x93,
       type: CommandSpecType.Range,
       min: 0,
-      max: 100
+      max: 100,
     }),
     TREBLE: literal<RangeCommandSpec>({
       page: 0x00,
       code: 0x8f,
       type: CommandSpecType.Range,
       min: 0,
-      max: 100
+      max: 100,
     }),
     BASS: literal<RangeCommandSpec>({
       page: 0x00,
       code: 0x91,
       type: CommandSpecType.Range,
       min: 0,
-      max: 100
+      max: 100,
     }),
 
     SURROUND: literal<OptionCommandSpec>({
@@ -405,8 +405,8 @@ export const COMMANDS = literal<CommandSpecs>({
       options: {
         OFF: 1,
         LOW: 2,
-        HIGH: 3
-      }
+        HIGH: 3,
+      },
     }),
     AUDIO_INPUT: literal<OptionCommandSpec>({
       page: 0x02,
@@ -418,17 +418,17 @@ export const COMMANDS = literal<CommandSpecs>({
         AUDIO3: 3,
         HDMI: 4,
         OPTION: 6,
-        DISPLAYPORT: 7
-      }
+        DISPLAYPORT: 7,
+      },
     }),
 
     AUDIO_RESET: literal<MomentaryCommandSpec>({
       page: 0x02,
       code: 0xcb,
       type: CommandSpecType.Momentary,
-      value: 4
-    })
-  }
+      value: 4,
+    }),
+  },
 
   //   SCHEDULE: {
   //     OFF: {

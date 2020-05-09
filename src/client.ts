@@ -313,8 +313,13 @@ export class NecClient extends EventEmitter {
         // console.log('sending')
         this.socket.write(this.inFlightMessage.payload)
         this.inFlightTimeout = setTimeout(() => {
-          this.emit('log', 'Timeout waiting for response')
+          this.emit('log', `Timeout waiting for response for: ${this.inFlightMessage ? this.inFlightMessage.commandId : '-'}`)
           // TODO - this should reject the inFlight promise, but should it close the connection, as stuff will be mismatched?
+          if (this.inFlightMessage) {
+            this.inFlightMessage.reject(new Error('Timed out'))
+            this.inFlightMessage = undefined
+            this._trySendQueued()
+          }
         }, MESSAGE_TIMEOUT)
       }
     }

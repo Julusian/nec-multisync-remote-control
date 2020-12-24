@@ -81,7 +81,12 @@ export class NecClient extends EventEmitter<NecClientEvents> {
 			//     this._pingInterval = null
 			//   }
 
-			//   this._triggerRetryConnection()
+			if (!this._retryConnectTimeout) {
+				this._retryConnectTimeout = setTimeout(() => {
+					this.emit('log', 'Trying reconnect')
+					this.socket.connect(DEFAULT_PORT, this._host)
+				}, 1000)
+			}
 		})
 
 		this.socket.on('data', (d) => this._handleReceivedData(d))
@@ -117,6 +122,7 @@ export class NecClient extends EventEmitter<NecClientEvents> {
 		this._connectionActive = false
 		if (this._retryConnectTimeout) {
 			clearTimeout(this._retryConnectTimeout)
+			this._retryConnectTimeout = null
 		}
 
 		if (!this._connected) {

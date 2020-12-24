@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events'
+import { EventEmitter } from 'eventemitter3'
 import { Socket } from 'net'
 import * as objectPath from 'object-path'
 import * as _ from 'underscore'
@@ -24,17 +24,14 @@ interface MessageQueueEntry {
 	sendTime?: number
 }
 
-export class NecClient extends EventEmitter {
-	public on!: ((event: 'error', listener: (message: any) => void) => this) &
-		((event: 'log', listener: (message: string) => void) => this) &
-		((event: 'connected', listener: () => void) => this) &
-		((event: 'disconnected', listener: () => void) => this)
+export type NecClientEvents = {
+	error: (message: any) => void
+	log: (message: string) => void
+	connected: () => void
+	disconnected: () => void
+}
 
-	public emit!: ((event: 'error', message: any) => boolean) &
-		((event: 'log', message: string) => boolean) &
-		((event: 'connected') => boolean) &
-		((event: 'disconnected') => boolean)
-
+export class NecClient extends EventEmitter<NecClientEvents> {
 	private readonly debug: boolean
 	private readonly socket: Socket
 

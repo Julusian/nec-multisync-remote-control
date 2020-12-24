@@ -15,14 +15,16 @@
   },
   "homepage": "https://github.com/Julusian/nec-multisync-remote-control",
   "scripts": {
-    "build": "trash dist && yarn build:main",
+    "build": "rimraf dist && yarn build:main",
     "build:main": "tsc -p tsconfig.build.json",
-    "lint": "tslint --project tsconfig.json --config tslint.json",
-    "changelog": "standard-version",
-    "release": "yarn reset && yarn docs:publish && yarn changelog",
-    "reset": "git clean -dfx && git reset --hard && yarn",
+    "lint": "eslint . --ext .ts --ext .js --ignore-pattern dist",
+    "lint-fix": "yarn lint --fix",
     "validate:dependencies": "yarn audit && yarn license-validate",
-    "license-validate": "node-license-validator -p -d --allow-licenses MIT BSD BSD-3-Clause ISC Apache"
+    "license-validate": "yarn sofie-licensecheck"
+  },
+  "engines": {
+    "node": ">=12",
+    "yarn": "^1.22"
   },
   "files": [
     "dist",
@@ -30,20 +32,31 @@
     "README.MD",
     "CHANGELOG.MD"
   ],
+  "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js,css,json,md,scss}": [
+      "prettier --write"
+    ],
+    "*.{ts,tsx}": [
+      "yarn lint-fix"
+    ]
+  },
   "dependencies": {
-    "object-path": "^0.11.4",
-    "underscore": "^1.10.2"
+    "object-path": "^0.11.5",
+    "underscore": "^1.12.0"
   },
   "devDependencies": {
-    "@types/node": "^12.11.2",
+    "@sofie-automation/code-standard-preset": "^0.2.1",
+    "@types/node": "^14.14.16",
     "@types/object-path": "^0.11.0",
-    "@types/underscore": "^1.9.3",
-    "node-license-validator": "^1.3.0",
-    "prettier": "^2.0.5",
-    "trash-cli": "^3.0.0",
-    "tslint": "^5.20.0",
-    "tslint-config-prettier": "^1.18.0",
-    "tslint-plugin-prettier": "^2.0.1",
-    "typescript": "~3.6.4"
+    "@types/underscore": "^1.10.24",
+    "rimraf": "^3.0.2",
+    "standard-version": "^9.0.0",
+    "typescript": "~4.1.3"
   }
 }

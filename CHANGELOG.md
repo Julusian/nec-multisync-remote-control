@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.4](https://github.com/Julusian/nec-multisync-remote-control/compare/v0.0.3...v0.0.4) (2020-12-28)
+
 ### 0.0.3 (2020-12-24)
 
 
@@ -14,4 +16,3 @@ All notable changes to this project will be documented in this file. See [standa
 ### Bug Fixes
 
 * retry connection on connection close ([1b2f5ef](https://github.com/Julusian/nec-multisync-remote-control/commit/1b2f5ef648557bedf00148db3b27e8d54b567ab4))
-

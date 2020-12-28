@@ -1,6 +1,6 @@
 {
   "name": "nec-multisync-remote-control",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Nec Multisync (eg P401, P554) remote control",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",

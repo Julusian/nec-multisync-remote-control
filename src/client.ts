@@ -83,6 +83,7 @@ export class NecClient extends EventEmitter<NecClientEvents> {
 
 			if (!this._retryConnectTimeout) {
 				this._retryConnectTimeout = setTimeout(() => {
+					this._retryConnectTimeout = null
 					this.emit('log', 'Trying reconnect')
 					this.socket.connect(DEFAULT_PORT, this._host)
 				}, 1000)

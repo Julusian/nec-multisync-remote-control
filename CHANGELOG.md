@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.0](https://github.com/Julusian/nec-multisync-remote-control/compare/v0.0.4...v0.1.0) (2021-01-17)
+
+
+### Bug Fixes
+
+* reconnect timer only firing once ([cef2c9d](https://github.com/Julusian/nec-multisync-remote-control/commit/cef2c9d4363681bf169d0fad807e5adbd25095ff))
+
 ### [0.0.4](https://github.com/Julusian/nec-multisync-remote-control/compare/v0.0.3...v0.0.4) (2020-12-28)
 
 ### 0.0.3 (2020-12-24)

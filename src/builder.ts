@@ -1,13 +1,12 @@
-import * as _ from 'underscore'
 import { ETX, HEADER_RESERVED, SENDER_ID, SOH, STX, TERMINATOR } from './constants'
 import { MessageType } from './enums'
-import { encodeToHexBytes } from './util'
+import { encodeToHexBytes, flatten } from './util'
 
 export function buildMessage(id: number, type: MessageType, commandId: number[], value?: number[]): Buffer {
 	const body = Buffer.from([
 		STX,
-		..._.flatten(commandId.map((c) => encodeToHexBytes(c))),
-		..._.flatten((value || []).map((c) => encodeToHexBytes(c))),
+		...flatten(commandId.map((c) => encodeToHexBytes(c))),
+		...flatten((value || []).map((c) => encodeToHexBytes(c))),
 		ETX,
 	])
 

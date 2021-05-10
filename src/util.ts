@@ -49,3 +49,7 @@ export function assertUnreachable(_never: never): never {
 export function literal<T>(val: T): T {
 	return val
 }
+
+export function flatten<T>(arr: T[][]): T[] {
+	return arr.reduce((a, b) => a.concat(b), [])
+}

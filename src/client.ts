@@ -1,7 +1,6 @@
 import { EventEmitter } from 'eventemitter3'
 import { Socket } from 'net'
 import * as objectPath from 'object-path'
-import * as _ from 'underscore'
 import { buildMessage } from './builder'
 import { COMMANDS, SomeCommandSpec } from './commands'
 import { MessageType, MONITOR_ID_ALL, MonitorId } from './enums'
@@ -262,7 +261,7 @@ export class NecClient extends EventEmitter<NecClientEvents> {
 	}
 
 	private _tryCompleteReceivedData(headerInfo: ParsedHeaderInfo | undefined, errorOnFailure: boolean) {
-		const headerBuffer = _.first(this.receivedBuffers)
+		const headerBuffer = this.receivedBuffers[0]
 		if (headerBuffer) {
 			headerInfo = headerInfo || (parseMessageHeader(headerBuffer) as ParsedHeaderInfo)
 

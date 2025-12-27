@@ -42,14 +42,10 @@ export function bufferReadString(buffer: Buffer, offset: number, length: number)
 	return res
 }
 
-export function assertUnreachable(_never: never): never {
-	throw new Error("Didn't expect to get here")
+export function assertUnreachable(_never: never): void {
+	// throw new Error("Didn't expect to get here")
 }
 
 export function literal<T>(val: T): T {
 	return val
-}
-
-export function flatten<T>(arr: T[][]): T[] {
-	return arr.reduce((a, b) => a.concat(b), [])
 }

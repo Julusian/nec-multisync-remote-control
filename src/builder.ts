@@ -1,12 +1,12 @@
-import { ETX, HEADER_RESERVED, SENDER_ID, SOH, STX, TERMINATOR } from './constants'
-import { MessageType } from './enums'
-import { encodeToHexBytes, flatten } from './util'
+import { ETX, HEADER_RESERVED, SENDER_ID, SOH, STX, TERMINATOR } from './constants.js'
+import { MessageType } from './enums.js'
+import { encodeToHexBytes } from './util.js'
 
 export function buildMessage(id: number, type: MessageType, commandId: number[], value?: number[]): Buffer {
 	const body = Buffer.from([
 		STX,
-		...flatten(commandId.map((c) => encodeToHexBytes(c))),
-		...flatten((value || []).map((c) => encodeToHexBytes(c))),
+		...commandId.flatMap((c) => encodeToHexBytes(c)),
+		...(value || []).flatMap((c) => encodeToHexBytes(c)),
 		ETX,
 	])
 

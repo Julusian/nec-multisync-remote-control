@@ -1,7 +1,7 @@
-import { calculateCheckCode } from './builder'
-import { SENDER_ID, SOH } from './constants'
-import { MessageType } from './enums'
-import { bufferReadHex, bufferReadString } from './util'
+import { calculateCheckCode } from './builder.js'
+import { SENDER_ID, SOH } from './constants.js'
+import { MessageType } from './enums.js'
+import { bufferReadHex, bufferReadString } from './util.js'
 
 // var OperationType = {
 //   SET: '00',

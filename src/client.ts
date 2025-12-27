@@ -1,12 +1,12 @@
 import { EventEmitter } from 'eventemitter3'
 import { Socket } from 'net'
 import * as objectPath from 'object-path'
-import { buildMessage } from './builder'
-import { COMMANDS, SomeCommandSpec } from './commands'
-import { MessageType, MONITOR_ID_ALL, MonitorId } from './enums'
-import { convertMonitorId } from './id'
-import { ParsedHeaderInfo, parseMessage, parseMessageHeader } from './parser'
-import { assertUnreachable } from './util'
+import { buildMessage } from './builder.js'
+import { COMMANDS, SomeCommandSpec } from './commands.js'
+import { MessageType, MONITOR_ID_ALL, MonitorId } from './enums.js'
+import { convertMonitorId } from './id.js'
+import { ParsedHeaderInfo, parseMessage, parseMessageHeader } from './parser.js'
+import { assertUnreachable } from './util.js'
 
 const DEFAULT_PORT = 7142
 const MESSAGE_TIMEOUT = 1000
@@ -318,7 +318,7 @@ export class NecClient extends EventEmitter<NecClientEvents> {
 				this.inFlightTimeout = setTimeout(() => {
 					this.emit(
 						'log',
-						`Timeout waiting for response for: ${this.inFlightMessage ? this.inFlightMessage.commandId : '-'}`
+						`Timeout waiting for response for: ${this.inFlightMessage ? this.inFlightMessage.commandId : '-'}`,
 					)
 					// TODO - this should reject the inFlight promise, but should it close the connection, as stuff will be mismatched?
 					if (this.inFlightMessage) {

@@ -1,4 +1,4 @@
-import { literal } from './util'
+import { literal } from './util.js'
 
 export interface CommandSpecBase {
 	page: number

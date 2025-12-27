@@ -9,6 +9,8 @@
 			"*": ["./node_modules/*"],
 			"nec-multisync-control": ["./src/index.ts"]
 		},
-		"types": ["node"]
+		"types": ["node"],
+		"module": "node16",
+		"moduleResolution": "node16"
 	}
 }

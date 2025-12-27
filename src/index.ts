@@ -1,4 +1,4 @@
-import * as NecEnums from './enums'
+import * as NecEnums from './enums.js'
 export { NecEnums }
 
-export * from './client'
+export * from './client.js'

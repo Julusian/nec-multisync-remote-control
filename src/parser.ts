@@ -10,7 +10,7 @@ import { bufferReadHex, bufferReadString } from './util.js'
 
 export interface ParsedHeaderInfo {
 	deviceId: number
-	type: number
+	type: MessageType
 	bodyLength: number
 	totalLength: number
 }
@@ -40,22 +40,19 @@ export interface ParsedResponse {
 	value: string | number
 }
 
-export function parseMessage(commandId: number[], message: Buffer): string | number {
+export function parseMessage(headerInfo: ParsedHeaderInfo, commandId: number[], message: Buffer): string | number {
 	const checksumByte = message.readUInt8(message.length - 2)
 	const calculatedChecksum = calculateCheckCode(message.slice(1, message.length - 2))
 	if (checksumByte !== calculatedChecksum) {
 		throw new Error(`Message checksum failed. Got: ${calculatedChecksum} Expected ${checksumByte}`)
 	}
 
-	const headerProps = parseHeader(message)
-	// console.log('header', headerProps)
-
 	const body = message.slice(7, message.length - 2)
-	if (body.length !== headerProps.length) {
-		throw new Error(`Message body length incorrect. Got: ${body.length} Expected ${headerProps.length}`)
+	if (body.length !== headerInfo.bodyLength) {
+		throw new Error(`Message body length incorrect. Got: ${body.length} Expected ${headerInfo.bodyLength}`)
 	}
 
-	switch (headerProps.type) {
+	switch (headerInfo.type) {
 		case MessageType.GetReply:
 		case MessageType.SetReply: {
 			const res = parseGetSetReply(body)
@@ -68,20 +65,7 @@ export function parseMessage(commandId: number[], message: Buffer): string | num
 		case MessageType.CommandReply:
 			return parseCommandReply(commandId, body)
 		default:
-			throw new Error(`Message received of unsupported type: ${MessageType[headerProps.type]}`)
-	}
-}
-
-function parseHeader(message: Buffer) {
-	// in hex: 01 30 _ID_ 30 _TYPE_ _LEN_ _LEN2_
-	const type = message.readUInt8(4) as MessageType
-	if (!MessageType[type]) {
-		throw new Error(`Message received with unknown type: ${type}`)
-	}
-
-	return {
-		type,
-		length: bufferReadHex(message, 5, 1),
+			throw new Error(`Message received of unsupported type: ${MessageType[headerInfo.type]}`)
 	}
 }
 

@@ -32,8 +32,8 @@
   "files": [
     "dist",
     "LICENSE",
-    "README.MD",
-    "CHANGELOG.MD"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
   "lint-staged": {

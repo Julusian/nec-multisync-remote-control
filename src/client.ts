@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events'
 import { Socket } from 'node:net'
-import * as objectPath from 'object-path'
+import objectPath from 'object-path'
 import { buildMessage } from './builder.js'
 import { COMMANDS, SomeCommandSpec } from './commands.js'
 import { MessageType, MONITOR_ID_ALL, MonitorId } from './enums.js'
@@ -34,7 +34,7 @@ export class NecClient extends EventEmitter<NecClientEvents> {
 	private readonly debug: boolean
 	private readonly socket: Socket
 
-	private receivedBuffers: Buffer[] = []
+	private receiveBuffer: Buffer = Buffer.alloc(0)
 	private messageQueue: MessageQueueEntry[] = []
 	private inFlightMessage: MessageQueueEntry | undefined
 	private inFlightTimeout: NodeJS.Timeout | undefined
@@ -236,56 +236,56 @@ export class NecClient extends EventEmitter<NecClientEvents> {
 	}
 
 	private _handleReceivedData(data: Buffer) {
-		const headerInfo = parseMessageHeader(data)
-		if (headerInfo) {
-			// Start of new message
-			if (this.receivedBuffers.length !== 0) {
-				if (this.debug) {
-					this.emit('log', 'Received new header with some buffers to finish off')
-				}
-
-				this._tryCompleteReceivedData(undefined, true)
-				this.receivedBuffers = []
-			}
-
-			//   console.log('new header packet')
-			this.receivedBuffers.push(data)
-			this._tryCompleteReceivedData(headerInfo, false)
+		// Append incoming data to the continuous receive buffer
+		if (this.receiveBuffer.length > 0) {
+			this.receiveBuffer = Buffer.concat([this.receiveBuffer, data])
 		} else {
-			if (this.receivedBuffers.length === 0) {
-				this.emit('log', 'Received middle packet with no waiting header')
-			}
-			this.receivedBuffers.push(data)
-			this._tryCompleteReceivedData(undefined, false)
+			this.receiveBuffer = data
 		}
+
+		// Try to parse and process complete messages
+		this._tryCompleteReceivedData()
 	}
 
-	private _tryCompleteReceivedData(headerInfo: ParsedHeaderInfo | undefined, errorOnFailure: boolean) {
-		const headerBuffer = this.receivedBuffers[0]
-		if (headerBuffer) {
-			headerInfo = headerInfo || (parseMessageHeader(headerBuffer) as ParsedHeaderInfo)
+	private _tryCompleteReceivedData() {
+		// Continuously parse complete messages from the buffer
+		while (this.receiveBuffer.length > 0) {
+			// Need at least 6 bytes to parse a header (SOH + reserved + deviceId + reserved + type + bodyLength)
+			if (this.receiveBuffer.length < 7) {
+				break
+			}
 
-			const buffersLength = this.receivedBuffers.map((b) => b.length).reduce((a, b) => a + b, 0)
-			if (buffersLength >= headerInfo.totalLength) {
-				let fullData = Buffer.concat(this.receivedBuffers)
-				this.receivedBuffers = []
+			// Try to parse header from the beginning of the buffer
+			const headerInfo = parseMessageHeader(this.receiveBuffer)
 
-				if (fullData.length > headerInfo.totalLength) {
-					this.emit('log', `Received buffers too long. Discarding ${fullData.length - headerInfo.totalLength} bytes`)
-					fullData = fullData.slice(0, headerInfo.totalLength)
+			if (!headerInfo) {
+				// No valid header at start - discard one byte and try again
+				if (this.debug) {
+					this.emit(
+						'log',
+						`No valid header at position 0, discarding byte: 0x${this.receiveBuffer.readUInt8(0).toString(16)}`
+					)
 				}
-
-				this._parseReceivedData(fullData)
-			} else if (errorOnFailure) {
-				this.emit('log', `Discarding ${this.receivedBuffers.length} buffers with not enough data`)
-				this.receivedBuffers = []
+				this.receiveBuffer = this.receiveBuffer.subarray(1)
+				continue
 			}
 
-			//   console.log('buffers to process', this.receivedBuffers.length)
+			// Check if we have the complete message
+			if (this.receiveBuffer.length < headerInfo.totalLength) {
+				// Not enough data yet, wait for more
+				break
+			}
+
+			// Extract the complete message
+			const messageData = this.receiveBuffer.subarray(0, headerInfo.totalLength)
+			this.receiveBuffer = this.receiveBuffer.subarray(headerInfo.totalLength)
+
+			// Parse and handle the message
+			this._parseReceivedData(headerInfo, messageData)
 		}
 	}
 
-	private _parseReceivedData(fullData: Buffer) {
+	private _parseReceivedData(headerInfo: ParsedHeaderInfo, fullData: Buffer) {
 		if (this.inFlightTimeout) {
 			clearTimeout(this.inFlightTimeout)
 			this.inFlightTimeout = undefined
@@ -299,7 +299,7 @@ export class NecClient extends EventEmitter<NecClientEvents> {
 		}
 
 		try {
-			const parsed = parseMessage(msg.commandId, fullData)
+			const parsed = parseMessage(headerInfo, msg.commandId, fullData)
 			// console.log('result:', parsed)
 			msg.resolve(parsed)
 		} catch (e) {

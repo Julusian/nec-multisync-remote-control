@@ -14,3 +14,11 @@ wallaby.conf.js
 
 # JetBrains IDE project files
 /.idea
+
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+*/.yarn/*

@@ -45,13 +45,12 @@
     ]
   },
   "dependencies": {
-    "eventemitter3": "^4.0.7",
     "object-path": "^0.11.8",
     "tslib": "^2.8.1"
   },
   "devDependencies": {
     "@sofie-automation/code-standard-preset": "~3.2.0",
-    "@types/node": "^14.18.63",
+    "@types/node": "^22.19.3",
     "@types/object-path": "^0.11.4",
     "eslint": "^9.39.2",
     "husky": "^9.1.7",

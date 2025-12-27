@@ -1,5 +1,5 @@
-import { EventEmitter } from 'eventemitter3'
-import { Socket } from 'net'
+import { EventEmitter } from 'node:events'
+import { Socket } from 'node:net'
 import * as objectPath from 'object-path'
 import { buildMessage } from './builder.js'
 import { COMMANDS, SomeCommandSpec } from './commands.js'
@@ -24,10 +24,10 @@ interface MessageQueueEntry {
 }
 
 export type NecClientEvents = {
-	error: (message: any) => void
-	log: (message: string) => void
-	connected: () => void
-	disconnected: () => void
+	error: [message: any]
+	log: [message: string]
+	connected: []
+	disconnected: []
 }
 
 export class NecClient extends EventEmitter<NecClientEvents> {
@@ -37,11 +37,11 @@ export class NecClient extends EventEmitter<NecClientEvents> {
 	private receivedBuffers: Buffer[] = []
 	private messageQueue: MessageQueueEntry[] = []
 	private inFlightMessage: MessageQueueEntry | undefined
-	private inFlightTimeout: NodeJS.Timer | undefined
+	private inFlightTimeout: NodeJS.Timeout | undefined
 
 	private _connected = false
 	private _connectionActive = false // True when connected/connecting/reconnecting
-	private _retryConnectTimeout: NodeJS.Timer | null = null
+	private _retryConnectTimeout: NodeJS.Timeout | null = null
 	private _host = ''
 	private _id: number = MONITOR_ID_ALL.charCodeAt(0)
 
@@ -118,7 +118,7 @@ export class NecClient extends EventEmitter<NecClientEvents> {
 		this.socket.connect(DEFAULT_PORT, this._host)
 	}
 
-	public disconnect(): Promise<void> {
+	public async disconnect(): Promise<void> {
 		this._connectionActive = false
 		if (this._retryConnectTimeout) {
 			clearTimeout(this._retryConnectTimeout)
@@ -135,12 +135,12 @@ export class NecClient extends EventEmitter<NecClientEvents> {
 				this.socket.end()
 				return resolve()
 			} catch (e) {
-				return reject(e)
+				return reject(e as Error)
 			}
 		})
 	}
 
-	public sendGetStringCommand(command: 'MODEL' | 'SERIAL'): Promise<string | number> {
+	public async sendGetStringCommand(command: 'MODEL' | 'SERIAL'): Promise<string | number> {
 		let sendCommand: number[]
 		let response: number[]
 		switch (command) {
@@ -161,7 +161,7 @@ export class NecClient extends EventEmitter<NecClientEvents> {
 		return this._queueMessage(response, payload)
 	}
 
-	public sendGetCommand(command: 'POWER'): Promise<number> {
+	public async sendGetCommand(command: 'POWER'): Promise<number> {
 		let sendCommand: number[]
 		let response: number[]
 		switch (command) {
@@ -178,7 +178,7 @@ export class NecClient extends EventEmitter<NecClientEvents> {
 		return this._queueMessage(response, payload)
 	}
 
-	public sendSetCommand(command: 'POWER', value: number): Promise<number> {
+	public async sendSetCommand(command: 'POWER', value: number): Promise<number> {
 		let codes: number[]
 		switch (command) {
 			case 'POWER':
@@ -193,7 +193,7 @@ export class NecClient extends EventEmitter<NecClientEvents> {
 		return this._queueMessage(codes, payload)
 	}
 
-	public sendGetByKey(key: string): Promise<number> {
+	public async sendGetByKey(key: string): Promise<number> {
 		const spec = objectPath.get<SomeCommandSpec | undefined>(COMMANDS, key, undefined)
 		if (spec === undefined) {
 			throw new Error(`Invalid key: "${key}"`)
@@ -202,12 +202,12 @@ export class NecClient extends EventEmitter<NecClientEvents> {
 		return this.sendGetBySpec(spec)
 	}
 
-	public sendGetBySpec(spec: SomeCommandSpec): Promise<number> {
+	public async sendGetBySpec(spec: SomeCommandSpec): Promise<number> {
 		const payload = buildMessage(this._id, MessageType.Get, [spec.page, spec.code])
 		return this._queueMessage([spec.page, spec.code], payload)
 	}
 
-	public sendSetByKey(key: string, value: number): Promise<number> {
+	public async sendSetByKey(key: string, value: number): Promise<number> {
 		const spec = objectPath.get<SomeCommandSpec | undefined>(COMMANDS, key, undefined)
 		if (spec === undefined) {
 			throw new Error(`Invalid key: "${key}"`)
@@ -216,14 +216,14 @@ export class NecClient extends EventEmitter<NecClientEvents> {
 		return this.sendSetBySpec(spec, value)
 	}
 
-	public sendSetBySpec(spec: SomeCommandSpec, value: number): Promise<number> {
+	public async sendSetBySpec(spec: SomeCommandSpec, value: number): Promise<number> {
 		// TODO - validate value?
 
 		const payload = buildMessage(this._id, MessageType.Set, [spec.page, spec.code], [value])
 		return this._queueMessage([spec.page, spec.code], payload)
 	}
 
-	private _queueMessage(commandId: number[], payload: Buffer): Promise<any> {
+	private async _queueMessage(commandId: number[], payload: Buffer): Promise<any> {
 		return new Promise((resolve, reject) => {
 			this.messageQueue.push({
 				commandId,
@@ -318,7 +318,7 @@ export class NecClient extends EventEmitter<NecClientEvents> {
 				this.inFlightTimeout = setTimeout(() => {
 					this.emit(
 						'log',
-						`Timeout waiting for response for: ${this.inFlightMessage ? this.inFlightMessage.commandId : '-'}`,
+						`Timeout waiting for response for: ${this.inFlightMessage ? this.inFlightMessage.commandId : '-'}`
 					)
 					// TODO - this should reject the inFlight promise, but should it close the connection, as stuff will be mismatched?
 					if (this.inFlightMessage) {

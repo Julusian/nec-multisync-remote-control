@@ -1,4 +1,4 @@
-/* eslint-disable no-process-exit */
+/* eslint-disable n/no-process-exit */
 const { NecClient } = require('./dist')
 
 const client = new NecClient({ debug: true })
